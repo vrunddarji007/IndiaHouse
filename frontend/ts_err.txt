@@ -1,0 +1,3 @@
+src/app/pages/auth/register.component.ts(318,14): error TS2367: This comparison appears to be unintentional because the types '"buyer" | "admin" | undefined' and '"host"' have no overlap.
+src/app/services/auth.service.ts(69,29): error TS2367: This comparison appears to be unintentional because the types '"buyer" | "admin" | undefined' and '"host"' have no overlap.
+src/app/shared/header/header.component.ts(73,45): error TS2367: This comparison appears to be unintentional because the types '"buyer" | "admin" | undefined' and '"host"' have no overlap.
