@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: '/_/backend/api',
-  socketUrl: '/_/backend'
+  apiUrl: 'https://indiahouse.onrender.com/api',
+  socketUrl: 'https://indiahouse.onrender.com'
 };
