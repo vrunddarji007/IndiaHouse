@@ -126,6 +126,5 @@ propertySchema.pre('validate', function (next) {
 propertySchema.index({ location: 'text', state: 'text', title: 'text' });
 propertySchema.index({ status: 1, type: 1, price: 1 });
 propertySchema.index({ postedBy: 1 });
-propertySchema.index({ slug: 1 });
 
 module.exports = mongoose.model('Property', propertySchema);
