@@ -56,19 +56,14 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/profile-view/profile-view.component').then(m => m.ProfileViewComponent)
   },
   {
-    path: 'profile/:id',
-    canActivate: [authGuard],
-    loadComponent: () => import('./pages/profile-view/profile-view.component').then(m => m.ProfileViewComponent)
-  },
-  {
-    path: 'complete-profile',
+    path: 'profile/edit',
     canActivate: [authGuard],
     loadComponent: () => import('./pages/complete-profile/complete-profile.component').then(m => m.CompleteProfileComponent)
   },
   {
-    path: 'terms',
+    path: 'profile/:id',
     canActivate: [authGuard],
-    loadComponent: () => import('./pages/auth/terms.component').then(m => m.TermsComponent)
+    loadComponent: () => import('./pages/profile-view/profile-view.component').then(m => m.ProfileViewComponent)
   },
   {
     path: 'host-dashboard',

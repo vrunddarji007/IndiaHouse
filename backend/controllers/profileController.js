@@ -39,9 +39,9 @@ const userResponse = (user) => ({
 exports.completeProfile = async (req, res, next) => {
   try {
     const {
-      firstName, lastName, username, bio,
+      firstName, lastName, username, bio, phone, role,
       gender, dateOfBirth,
-      street, city, state, pincode, country,
+      street, city, town, village, state, pincode, country,
       company, designation, website, experience, specialization,
       languages, reraNumber,
       linkedin, twitter, instagram, facebook,
@@ -74,6 +74,15 @@ exports.completeProfile = async (req, res, next) => {
     user.username = username.toLowerCase().trim();
     user.name = `${firstName.trim()} ${lastName.trim()}`;
     if (bio !== undefined) user.bio = bio.trim();
+    if (role && ['buyer', 'agent', 'host'].includes(role)) user.role = role;
+
+    // Handle Phone Unique Update
+    if (phone) {
+      const ph = phone.trim();
+      const existingPhone = await User.findOne({ phone: ph, _id: { $ne: user._id } });
+      if (existingPhone) return res.status(409).json({ success: false, message: 'Phone number already registered' });
+      user.phone = ph;
+    }
 
     // Extended fields
     if (gender) user.gender = gender;
@@ -82,6 +91,8 @@ exports.completeProfile = async (req, res, next) => {
       user.address = {
         street: (street || '').trim(),
         city: (city || '').trim(),
+        town: (town || '').trim(),
+        village: (village || '').trim(),
         state: (state || '').trim(),
         pincode: (pincode || '').trim(),
         country: (country || 'India').trim(),
@@ -115,6 +126,11 @@ exports.completeProfile = async (req, res, next) => {
     }
 
     user.isProfileComplete = true;
+    user.termsAccepted = {
+      status: true,
+      date: new Date(),
+      ip: req.ip || ''
+    };
     await user.save();
 
     console.log(`[PROFILE] ${user.email} completed profile as @${user.username}`);
@@ -133,9 +149,9 @@ exports.completeProfile = async (req, res, next) => {
 exports.editProfile = async (req, res, next) => {
   try {
     const {
-      firstName, lastName, username, bio,
+      firstName, lastName, username, bio, phone,
       gender, dateOfBirth,
-      street, city, state, pincode, country,
+      street, city, town, village, state, pincode, country,
       company, designation, website, experience, specialization,
       languages, reraNumber,
       linkedin, twitter, instagram, facebook,
@@ -147,6 +163,7 @@ exports.editProfile = async (req, res, next) => {
     if (firstName) user.firstName = firstName.trim();
     if (lastName) user.lastName = lastName.trim();
     if (firstName || lastName) user.name = `${user.firstName} ${user.lastName}`.trim();
+    if (phone) user.phone = phone.trim();
 
     // Username
     if (username) {
@@ -170,6 +187,8 @@ exports.editProfile = async (req, res, next) => {
       user.address = {
         street: (street !== undefined ? street : user.address?.street || '').trim(),
         city: (city !== undefined ? city : user.address?.city || '').trim(),
+        town: (town !== undefined ? town : user.address?.town || '').trim(),
+        village: (village !== undefined ? village : user.address?.village || '').trim(),
         state: (state !== undefined ? state : user.address?.state || '').trim(),
         pincode: (pincode !== undefined ? pincode : user.address?.pincode || '').trim(),
         country: (country !== undefined ? country : user.address?.country || 'India').trim(),
@@ -194,7 +213,13 @@ exports.editProfile = async (req, res, next) => {
     }
 
     // Photo
-    if (req.file) {
+    if (req.body.removePhoto === 'true') {
+      if (user.profilePhoto) {
+        const oldPath = path.join(__dirname, '..', user.profilePhoto);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      user.profilePhoto = '';
+    } else if (req.file) {
       if (user.profilePhoto) {
         const oldPath = path.join(__dirname, '..', user.profilePhoto);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);

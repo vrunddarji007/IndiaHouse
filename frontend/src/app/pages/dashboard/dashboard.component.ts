@@ -42,6 +42,7 @@ import { environment } from '../../../environments/environment';
               <div class="card-body">
                 <h6 class="fw-bold text-truncate">{{ prop.title }}</h6>
                 <p class="text-primary fw-bold mb-1">{{ prop.price | currency:'INR' }}</p>
+                <p class="text-muted small mb-2"><i class="bi bi-geo-alt me-1"></i><span *ngIf="prop.village">{{ prop.village }}, </span><span *ngIf="prop.town">{{ prop.town }}, </span>{{ prop.location }}{{ prop.state ? ', ' + prop.state : '' }}</p>
                 <div class="d-flex justify-content-between small text-muted border-top pt-2 mt-3">
                   <span><i class="bi bi-eye"></i> {{ prop.views }} Views</span>
                   <div class="d-flex flex-column gap-2 w-100">

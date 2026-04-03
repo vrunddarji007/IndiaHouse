@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const generateOTP = require('../utils/otpGenerator');
 const { sendOTPEmail } = require('../utils/emailService');
 const { sendOTPSMS } = require('../utils/smsService');
+const { OAuth2Client } = require('google-auth-library');
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const checkSuspension = require('../utils/checkSuspension');
 
 /**
@@ -12,8 +14,8 @@ const checkSuspension = require('../utils/checkSuspension');
  */
 exports.registerOrLogin = async (req, res, next) => {
   try {
-    const { firstName, lastName, email, phone, role, verificationMethod } = req.body;
-    const method = verificationMethod || 'email';
+    const { firstName, lastName, email, phone, role } = req.body;
+    const method = 'email';
     const name = (firstName && lastName) ? `${firstName} ${lastName}` : req.body.name;
     if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
 
@@ -28,7 +30,7 @@ exports.registerOrLogin = async (req, res, next) => {
         await user.save();
       }
     } else {
-      if (!name || !phone || !role) return res.status(200).json({ success: false, needsRole: true, message: 'First time? Provide name, phone, role.' });
+      if (!name || !role) return res.status(200).json({ success: false, needsRole: true, message: 'First time? Provide name and role.' });
 
       // FIX: Instead of deleting unverified users by phone (DoS vector),
       // check if phone is already taken by a VERIFIED user.
@@ -46,14 +48,13 @@ exports.registerOrLogin = async (req, res, next) => {
     const otp = generateOTP();
     await user.setOTP(otp, method);
     await dispatchOTP(user, otp, method);
-    res.status(200).json({ success: true, isNewUser, message: user.isVerified ? `Welcome back, ${user.name}! OTP sent.` : `OTP sent via ${method}.`, email: user.email, phone: user.phone.replace(/.(?=.{4})/g, '*'), method, role: user.role });
+    res.status(200).json({ success: true, isNewUser, message: user.isVerified ? `Welcome back, ${user.name}! OTP sent.` : `OTP sent via ${method}.`, email: user.email, phone: user.phone ? user.phone.replace(/.(?=.{4})/g, '*') : undefined, method, role: user.role });
   } catch (error) { next(error); }
 };
 
 const generateToken = (user) => jwt.sign({ id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role }, process.env.JWT_SECRET, { expiresIn: '30d' });
 const dispatchOTP = async (user, otp, method) => {
-  if (method === 'email' || method === 'both') await sendOTPEmail(user.email, otp, user.name);
-  if (method === 'sms' || method === 'both') await sendOTPSMS(user.phone, otp);
+  await sendOTPEmail(user.email, otp, user.name);
   console.log(`[OTP] ${user.email}: ${otp}`);
 };
 
@@ -79,8 +80,83 @@ exports.verifyOtp = async (req, res, next) => {
     user.lastLogin = new Date();
     await user.save();
     const token = generateToken(user);
-    res.json({ success: true, message: 'Verified!', _id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role, isVerified: true, token });
+    res.json({ success: true, message: 'Verified!', _id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role, isVerified: true, token, needsPassword: !user.password });
   } catch (error) { next(error); }
+};
+
+/**
+ * @desc    Google Login
+ * @route   POST /api/auth/google-login
+ */
+exports.googleLogin = async (req, res, next) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) return res.status(400).json({ success: false, message: 'Google ID Token is required' });
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    
+    const payload = ticket.getPayload();
+    const { email, name, sub: googleId, picture } = payload;
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // Create new user automatically from Google data
+      user = await User.create({
+        name,
+        email,
+        profilePhoto: picture,
+        isVerified: true,
+        // No password set yet, they use Google
+      });
+      
+      const token = generateToken(user);
+      return res.status(200).json({ 
+        success: true, 
+        isNewUser: true, 
+        token,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role, // default 'buyer'
+        needsTerms: true,
+        isProfileComplete: false,
+        isVerified: true,
+        message: 'Google account linked. Please complete your profile.' 
+      });
+    }
+
+    // Check if user has accepted terms
+    const needsTerms = !user.termsAccepted || !user.termsAccepted.status;
+
+    // Standard suspension check
+    const suspension = checkSuspension(user);
+    if (suspension.isSuspended) {
+      return res.status(suspension.response.statusCode).json(suspension.response.body);
+    }
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    const token = generateToken(user);
+    res.json({ 
+      success: true, 
+      token, 
+      _id: user._id, 
+      name: user.name, 
+      email: user.email, 
+      role: user.role, 
+      needsTerms,
+      isProfileComplete: user.isProfileComplete,
+      isVerified: true 
+    });
+  } catch (error) {
+    console.error('[GOOGLE AUTH ERROR]', error);
+    res.status(401).json({ success: false, message: error.message || 'Google authentication failed' });
+  }
 };
 
 /**
@@ -89,10 +165,38 @@ exports.verifyOtp = async (req, res, next) => {
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    
+    // 1. Check for Host Credentials directly from .env
+    const hostEmail = (process.env.HOST_EMAIL || '').toLowerCase().trim();
+    const hostPassword = process.env.HOST_PASSWORD || '';
+
+    if (hostEmail && hostPassword && email.toLowerCase().trim() === hostEmail && password === hostPassword) {
+      let user = await User.findOne({ email: hostEmail });
+      if (!user) {
+        user = new User({
+          name: 'Host Admin',
+          email: hostEmail,
+          phone: '+910000000000',
+          password: hostPassword,
+          role: 'host',
+          isVerified: true
+        });
+      } else {
+        user.role = 'host';
+        user.isVerified = true;
+        if (!user.password) user.password = hostPassword;
+      }
+      user.lastLogin = new Date();
+      await user.save();
+      return res.json({ success: true, _id: user.id, name: user.name, email: user.email, phone: user.phone, role: 'host', isVerified: true, token: generateToken(user) });
+    }
+
+    // 2. Fallback to standard database user check
     const user = await User.findOne({ email }).select('+password');
     if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     if (!user.isVerified) return res.status(403).json({ success: false, message: 'Please verify first', notVerified: true });
     if (!user.password) return res.status(400).json({ success: false, message: 'No password set. Use OTP.' });
+    
     const isMatch = await user.matchPassword(password);
     if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' });
 
@@ -117,8 +221,8 @@ exports.resendOtp = async (req, res, next) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     const otp = generateOTP();
-    await user.setOTP(otp, verificationMethod || 'email');
-    await dispatchOTP(user, otp, verificationMethod || 'email');
+    await user.setOTP(otp, 'email');
+    await dispatchOTP(user, otp, 'email');
     res.json({ success: true, message: 'New OTP sent' });
   } catch (error) { next(error); }
 };
@@ -185,10 +289,10 @@ exports.hostLogin = async (req, res, next) => {
     const { email, password } = req.body;
 
     // FIX: Read credentials from env (fallback to hardcoded for backward compat)
-    const hostEmail = (process.env.HOST_EMAIL || 'vrunddarji2005@gmail.com').toLowerCase().trim();
-    const hostPassword = process.env.HOST_PASSWORD || 'vasant@1971';
+    const hostEmail = (process.env.HOST_EMAIL || '').toLowerCase().trim();
+    const hostPassword = process.env.HOST_PASSWORD || '';
 
-    if (email.toLowerCase().trim() !== hostEmail || password !== hostPassword) {
+    if (!hostEmail || !hostPassword || email.toLowerCase().trim() !== hostEmail || password !== hostPassword) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
@@ -276,5 +380,57 @@ exports.acceptTerms = async (req, res, next) => {
     res.status(200).json({ success: true, message: 'Terms accepted' });
   } catch (error) {
     next(error);
+  }
+};
+
+/**
+ * @desc    Fast-complete registration for Google users (only Role choice)
+ * @route   POST /api/auth/google-complete
+ * @access  Private
+ */
+exports.setRoleAndCompleteGoogle = async (req, res, next) => {
+  try {
+    const { role } = req.body;
+    // req.user is already populated by protect middleware
+    const user = req.user;
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Set role only if picking something new
+    if (role && ['buyer', 'agent', 'host'].includes(role)) {
+      user.role = role;
+    }
+
+    // Auto-generate username only if one doesn't exist
+    if (!user.username) {
+      const base = (user.name || 'user').toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 15);
+      const random = Math.floor(1000 + Math.random() * 8999);
+      user.username = `${base}_${random}`;
+    }
+
+    // Force completion and terms
+    user.isProfileComplete = true;
+    user.termsAccepted = {
+      status: true,
+      date: new Date(),
+      ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress || ''
+    };
+
+    await user.save();
+
+    res.status(200).json({ 
+      success: true, 
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        isProfileComplete: true,
+        profilePhoto: user.profilePhoto
+      }
+    });
+  } catch (error) {
+    console.error('[GOOGLE COMPLETE ERROR]', error);
+    res.status(400).json({ success: false, message: error.message || 'Partial registration failed' });
   }
 };

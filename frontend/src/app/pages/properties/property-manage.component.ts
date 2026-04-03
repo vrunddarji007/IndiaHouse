@@ -29,7 +29,9 @@ import { environment } from '../../../environments/environment';
               </ol>
             </nav>
             <h2 class="fw-bold mb-0 text-forest">{{ property.title }}</h2>
-            <p class="text-muted mb-0"><i class="bi bi-geo-alt me-1"></i> {{ property.location }}{{ property.state ? ', ' + property.state : '' }}</p>
+            <p class="text-muted mb-0">
+            <i class="bi bi-geo-alt me-1"></i> <span *ngIf="property.village">{{ property.village }}, </span><span *ngIf="property.town">{{ property.town }}, </span>{{ property.location }}{{ property.state ? ', ' + property.state : '' }}
+            </p>
           </div>
           <div class="d-flex gap-2 flex-wrap">
             <button class="btn rounded-pill px-4 transition-all" 
@@ -207,7 +209,15 @@ import { environment } from '../../../environments/environment';
                     <label class="text-muted small d-block mb-1">Price</label>
                     <p class="fw-bold text-forest fs-4">{{ property.price | currency:'INR' }}</p>
                   </div>
-                  <div class="col-md-6 text-center">
+                  <div class="col-md-4 text-center border-end">
+                    <label class="text-muted small d-block mb-1">Town</label>
+                    <p class="fw-bold text-forest">{{ property.town || 'N/A' }}</p>
+                  </div>
+                  <div class="col-md-4 text-center border-end">
+                    <label class="text-muted small d-block mb-1">Village</label>
+                    <p class="fw-bold text-forest">{{ property.village || 'N/A' }}</p>
+                  </div>
+                  <div class="col-md-4 text-center">
                     <label class="text-muted small d-block mb-1">Status</label>
                     <span class="badge rounded-pill fw-normal px-4 py-2" 
                         [ngClass]="property.status === 'active' ? 'bg-success' : 'bg-warning text-dark'">

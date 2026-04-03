@@ -27,8 +27,8 @@ const userSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: [true, 'Please add a phone number'],
       unique: true,
+      sparse: true,
     },
     password: { type: String, minlength: 6, select: false },
     role: {
@@ -48,6 +48,8 @@ const userSchema = new mongoose.Schema(
     address: {
       street: { type: String, default: '' },
       city: { type: String, default: '' },
+      town: { type: String, default: '' },
+      village: { type: String, default: '' },
       state: { type: String, default: '' },
       pincode: { type: String, default: '' },
       country: { type: String, default: 'India' },
@@ -80,7 +82,7 @@ const userSchema = new mongoose.Schema(
     otp: {
       code: String,
       expires: Date,
-      method: { type: String, enum: ['email', 'sms', 'both'] },
+      method: { type: String, enum: ['email'], default: 'email' },
     },
     otpResendCount: { type: Number, default: 0 },
     otpResendResetAt: Date,

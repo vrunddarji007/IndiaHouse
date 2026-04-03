@@ -66,6 +66,30 @@ export class AuthService {
       }));
   }
 
+  googleLogin(idToken: string): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/auth/google-login`, { idToken })
+      .pipe(map(user => {
+        if (user.token) {
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          this.currentUserSubject.next(user);
+        }
+        return user;
+      }));
+  }
+
+  googleComplete(role: string): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/auth/google-complete`, { role })
+      .pipe(map(res => {
+        if (res.user) {
+          const current = this.currentUserSubject.value;
+          const updated = { ...current, ...res.user };
+          localStorage.setItem('currentUser', JSON.stringify(updated));
+          this.currentUserSubject.next(updated);
+        }
+        return res;
+      }));
+  }
+
   updateCurrentUser(userData: Partial<any>) {
     const current = this.currentUserSubject.value;
     if (current) {

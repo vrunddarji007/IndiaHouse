@@ -26,7 +26,7 @@ import { environment } from '../../../environments/environment';
         <!-- Top-Right Actions (Absolute Page Corner) -->
         <div class="position-absolute d-flex gap-2" style="top: -45px; right: 0; z-index: 10;">
           <ng-container *ngIf="isSelf; else otherActions">
-            <a routerLink="/complete-profile" class="btn btn-forest px-3 py-2 rounded-pill d-flex align-items-center gap-2 fw-bold shadow-sm hover-lift border-2 border-white">
+            <a routerLink="/profile/edit" class="btn btn-forest px-3 py-2 rounded-pill d-flex align-items-center gap-2 fw-bold shadow-sm hover-lift border-2 border-white">
               <i class="bi bi-pencil-square"></i>
               Edit Profile
             </a>
@@ -73,6 +73,22 @@ import { environment } from '../../../environments/environment';
                 <p class="mb-4 fw-medium text-muted" style="max-width: 500px; line-height: 1.6;" *ngIf="user.bio">
                   {{ user.bio }}
                 </p>
+
+                <!-- Social Links -->
+                <div class="d-flex gap-3 mb-2" *ngIf="user.socialLinks">
+                  <a *ngIf="user.socialLinks.linkedin" [href]="user.socialLinks.linkedin" target="_blank" class="text-forest fs-5 hover-lift" title="LinkedIn">
+                    <i class="bi bi-linkedin"></i>
+                  </a>
+                  <a *ngIf="user.socialLinks.twitter" [href]="user.socialLinks.twitter" target="_blank" class="text-forest fs-5 hover-lift" title="Twitter / X">
+                    <i class="bi bi-twitter-x"></i>
+                  </a>
+                  <a *ngIf="user.socialLinks.instagram" [href]="user.socialLinks.instagram" target="_blank" class="text-forest fs-5 hover-lift" title="Instagram">
+                    <i class="bi bi-instagram"></i>
+                  </a>
+                  <a *ngIf="user.socialLinks.facebook" [href]="user.socialLinks.facebook" target="_blank" class="text-forest fs-5 hover-lift" title="Facebook">
+                    <i class="bi bi-facebook"></i>
+                  </a>
+                </div>
               </div>
             </div>
 
@@ -91,9 +107,9 @@ import { environment } from '../../../environments/environment';
         </div>
 
         <!-- ═══ INFO CARDS ═══ -->
-        <div class="row g-4">
+        <div class="row g-4 mb-4">
           <!-- Personal Info -->
-          <div class="col-md-6">
+          <div class="col-md-4">
             <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
               <div class="card-body p-4">
                 <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
@@ -101,26 +117,15 @@ import { environment } from '../../../environments/environment';
                   Personal Information
                 </h5>
                 <div class="row g-3">
-                  <div class="col-6" *ngIf="user.email && (isSelf || user.role !== 'buyer')">
+                  <div class="col-12" *ngIf="user.email && (isSelf || user.role !== 'buyer')">
                     <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">Email</small>
-                    <p class="mb-0 fw-medium">{{ user.email }}</p>
+                    <p class="mb-0 fw-medium text-truncate">{{ user.email }}</p>
                   </div>
-                  <div class="col-6" *ngIf="user.phone && (isSelf || user.role !== 'buyer')">
+                  <div class="col-12" *ngIf="user.phone && (isSelf || user.role !== 'buyer')">
                     <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">Phone</small>
                     <p class="mb-0 fw-medium">{{ user.phone }}</p>
                   </div>
-                  <div class="col-6" *ngIf="user.gender && user.gender !== '' && isSelf">
-                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">Gender</small>
-                    <p class="mb-0 fw-medium text-capitalize">{{ genderLabel }}</p>
-                  </div>
-                  <div class="col-6">
-                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">Verified</small>
-                    <p class="mb-0 fw-medium d-flex align-items-center gap-1">
-                      <i class="bi" [ngClass]="user.isVerified ? 'bi-patch-check-fill text-success' : 'bi-patch-exclamation text-danger'"></i>
-                      {{ user.isVerified ? 'Yes' : 'No' }}
-                    </p>
-                  </div>
-                  <div class="col-6">
+                  <div class="col-12">
                     <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">Joined</small>
                     <p class="mb-0 fw-medium">{{ user.createdAt | date:'mediumDate' }}</p>
                   </div>
@@ -130,30 +135,63 @@ import { environment } from '../../../environments/environment';
           </div>
 
           <!-- Professional Details (If Agent/Host) -->
-          <div class="col-md-6" *ngIf="user.role !== 'buyer'">
+          <div class="col-md-4" *ngIf="user.role !== 'buyer'">
             <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
               <div class="card-body p-4">
                 <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
                   <i class="bi bi-briefcase text-forest"></i>
-                  Professional Details
+                  Professional Info
                 </h5>
                 <div class="row g-3">
-                  <div class="col-6" *ngIf="user.company">
+                  <div class="col-12" *ngIf="user.company">
                     <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">Company</small>
-                    <p class="mb-0 fw-medium">{{ user.company }}</p>
+                    <p class="mb-0 fw-medium text-truncate">{{ user.company }}</p>
                   </div>
-                  <div class="col-6" *ngIf="user.designation">
-                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">Designation</small>
-                    <p class="mb-0 fw-medium">{{ user.designation }}</p>
-                  </div>
-                  <div class="col-6" *ngIf="user.reraNumber">
+                  <div class="col-12" *ngIf="user.reraNumber">
                     <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">RERA Number</small>
                     <p class="mb-0 fw-medium">{{ user.reraNumber }}</p>
                   </div>
-                  <div class="col-6" *ngIf="user.website">
+                  <div class="col-12" *ngIf="user.website">
                     <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">Website</small>
-                    <a [href]="user.website" target="_blank" class="text-decoration-none fw-medium d-block text-truncate">{{ user.website }}</a>
+                    <a [href]="user.website" target="_blank" class="text-decoration-none fw-medium d-block text-truncate small">{{ user.website }}</a>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Address & Location Card -->
+          <div class="col-md" [ngClass]="user.role === 'buyer' ? 'col-md-8' : 'col-md-4'">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
+                  <i class="bi bi-geo-alt text-forest"></i>
+                  Address & Location
+                </h5>
+                <div class="row g-3" *ngIf="user.address">
+                  <div class="col-12" *ngIf="user.address.street">
+                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">Street Address</small>
+                    <p class="mb-0 fw-medium small">{{ user.address.street }}</p>
+                  </div>
+                  <div class="col-6" *ngIf="user.address.town">
+                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">Town</small>
+                    <p class="mb-0 fw-medium">{{ user.address.town }}</p>
+                  </div>
+                  <div class="col-6" *ngIf="user.address.village">
+                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">Village</small>
+                    <p class="mb-0 fw-medium">{{ user.address.village }}</p>
+                  </div>
+                  <div class="col-6" *ngIf="user.address.city">
+                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">City</small>
+                    <p class="mb-0 fw-medium">{{ user.address.city }}</p>
+                  </div>
+                  <div class="col-6" *ngIf="user.address.state">
+                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:11px;letter-spacing:1px;">State</small>
+                    <p class="mb-0 fw-medium">{{ user.address.state }}</p>
+                  </div>
+                </div>
+                <div *ngIf="!user.address || (!user.address.city && !user.address.town && !user.address.village)" class="text-center py-3 opacity-50">
+                   <p class="small mb-0">Location not provided</p>
                 </div>
               </div>
             </div>

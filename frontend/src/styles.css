@@ -491,3 +491,87 @@ button:active, .btn:active {
     width: 100% !important;
   }
 }
+/* ═══ FEATURE CARDS (HOME PAGE) ═══ */
+.feature-card {
+  padding: 1rem !important;
+  box-shadow: 2px 2px 40px 2px rgba(25, 135, 84, 0.238) !important;
+  border-radius: 20px !important;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 1px 1px 15px 1px rgba(25, 135, 84, 0.238) !important;
+}
+
+/* ═══ GOOGLE PREMIUM PRISMATIC GLASS EXTREME ═══ */
+.glass-google-wrapper {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 51, 50, 0.25);
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Moving Aurora Border Animation */
+.glass-google-wrapper::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    transparent,
+    rgba(189, 205, 207, 0.4),
+    rgba(141, 197, 184, 0.6),
+    rgba(227, 184, 184, 0.4),
+    transparent
+  );
+  animation: rotate-conic 4s linear infinite;
+  z-index: -2;
+}
+
+/* Inner Glass Layer */
+.glass-google-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  background: var(--auth-card-bg);
+  border-radius: 16px;
+  z-index: -1;
+  opacity: 0.95;
+}
+
+.glass-google-wrapper:hover {
+  transform: translateY(-8px) scale(1.03) rotateX(5deg);
+  box-shadow: 0 25px 60px rgba(0, 51, 50, 0.4);
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.glass-google-wrapper:hover::before {
+  animation-duration: 2s; /* Speed up on hover */
+}
+
+@keyframes rotate-conic {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* Ensure Google iframe doesn't break glass effect */
+#googleBtn > div {
+  margin: 0 auto !important;
+}

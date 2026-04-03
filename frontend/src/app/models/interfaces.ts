@@ -18,6 +18,8 @@ export interface User {
   address?: {
     street?: string;
     city?: string;
+    town?: string;
+    village?: string;
     state?: string;
     pincode?: string;
     country?: string;
@@ -58,6 +60,8 @@ export interface Property {
   furnishing: 'Furnished' | 'Semi' | 'Unfurnished';
   state?: string;
   location: string;
+  town?: string;
+  village?: string;
   address?: string;
   nearbyLandmarks?: string[];
   images?: string[];

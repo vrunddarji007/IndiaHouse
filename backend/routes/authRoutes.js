@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
-const { registerOrLogin, verifyOtp, resendOtp, setPassword, login, hostLogin, forgotPassword, resetPassword, acceptTerms, submitAppeal } = require('../controllers/authController');
+const { registerOrLogin, verifyOtp, resendOtp, setPassword, login, googleLogin, hostLogin, forgotPassword, resetPassword, acceptTerms, setRoleAndCompleteGoogle, submitAppeal } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -52,6 +52,9 @@ router.post('/set-password', protect, [
 // Accept terms (protected)
 router.post('/accept-terms', protect, acceptTerms);
 
+// Fast-complete Google registration (protected)
+router.post('/google-complete', protect, setRoleAndCompleteGoogle);
+
 // Forgot password (public – sends OTP)
 router.post('/forgot-password', forgotPasswordLimiter, [
   body('email', 'Valid email required').isEmail(),
@@ -69,6 +72,11 @@ router.post('/login', authLimiter, [
   body('email', 'Valid email required').isEmail(),
   body('password', 'Password required').exists(),
 ], validate, login);
+
+// Google login
+router.post('/google-login', authLimiter, [
+  body('idToken', 'Google ID Token required').exists(),
+], validate, googleLogin);
 
 // Host login (fixed credentials, rate-limited)
 router.post('/host-login', hostLoginLimiter, [

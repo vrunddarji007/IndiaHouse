@@ -73,9 +73,10 @@ exports.getConversations = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    // Find all messages where user is sender or receiver
+    // Find all messages where user is sender or receiver AND not deleted by user
     const messages = await Message.find({
       $or: [{ from: userId }, { to: userId }],
+      deletedBy: { $ne: userId }
     })
       .sort('-createdAt')
       .populate('from', 'name firstName lastName profilePhoto profilePic')
@@ -128,6 +129,7 @@ exports.getMessages = async (req, res, next) => {
 
     const messages = await Message.find({
       $or: [{ from: userId, to: otherUserId }, { from: otherUserId, to: userId }],
+      deletedBy: { $ne: userId }
     }).sort('createdAt').populate('property', 'title price images');
 
     // Mark messages as read
@@ -161,12 +163,16 @@ exports.clearChat = async (req, res, next) => {
     const userId = req.user.id;
     const otherUserId = req.params.otherUserId;
 
-    await Message.deleteMany({
-      $or: [
-        { from: userId, to: otherUserId },
-        { from: otherUserId, to: userId }
-      ]
-    });
+    await Message.updateMany(
+      {
+        $or: [
+          { from: userId, to: otherUserId },
+          { from: otherUserId, to: userId }
+        ],
+        deletedBy: { $ne: userId }
+      },
+      { $addToSet: { deletedBy: userId } }
+    );
 
     res.status(200).json({
       success: true,
@@ -186,13 +192,17 @@ exports.deleteChat = async (req, res, next) => {
     const userId = req.user.id;
     const otherUserId = req.params.otherUserId;
 
-    // Delete all messages between these users
-    await Message.deleteMany({
-      $or: [
-        { from: userId, to: otherUserId },
-        { from: otherUserId, to: userId }
-      ]
-    });
+    // Add user to deletedBy for all messages between these users
+    await Message.updateMany(
+      {
+        $or: [
+          { from: userId, to: otherUserId },
+          { from: otherUserId, to: userId }
+        ],
+        deletedBy: { $ne: userId }
+      },
+      { $addToSet: { deletedBy: userId } }
+    );
 
     res.status(200).json({
       success: true,
@@ -209,11 +219,15 @@ exports.deleteMessages = async (req, res, next) => {
   try {
     const { messageIds } = req.body;
     const userId = req.user.id;
-    // Security: Only delete if sender or receiver matches the current user
-    await Message.deleteMany({ 
-      _id: { $in: messageIds }, 
-      $or: [{ from: userId }, { to: userId }] 
-    });
+    // Security: Only hide if sender or receiver matches the current user
+    await Message.updateMany(
+      { 
+        _id: { $in: messageIds }, 
+        $or: [{ from: userId }, { to: userId }],
+        deletedBy: { $ne: userId }
+      },
+      { $addToSet: { deletedBy: userId } }
+    );
     res.status(200).json({ success: true, message: 'Messages deleted successfully' });
   } catch (error) { next(error); }
 };

@@ -8,6 +8,12 @@ export const authGuard: CanActivateFn = (route, state) => {
 
   const user = authService.currentUserValue;
   if (user) {
+    // Allow access to register page (for completing steps) and profile edit
+    const allowedPaths = ['/auth/register', '/profile/edit'];
+    if (!user.isProfileComplete && user.role !== 'host' && !allowedPaths.some(p => state.url.startsWith(p))) {
+      router.navigate(['/auth/register'], { queryParams: { incomplete: true } });
+      return false;
+    }
     return true;
   }
 

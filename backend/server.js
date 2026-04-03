@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
 const morgan = require('morgan');
 const path = require('path');
 const http = require('http');
@@ -31,6 +32,7 @@ chatSocket(server);
 
 // Middleware
 app.use(express.json());
+app.use(mongoSanitize()); // Prevent NoSQL Injection
 // FIX: Strict CORS instead of origin: *
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
 app.use(cors({ origin: frontendUrl, credentials: true }));

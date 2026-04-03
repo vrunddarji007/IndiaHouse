@@ -61,6 +61,12 @@ const propertySchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    town: {
+      type: String,
+    },
+    village: {
+      type: String,
+    },
     images: {
       type: [String],
       default: [],
@@ -111,7 +117,10 @@ const slugify = require('slugify');
 propertySchema.pre('validate', function (next) {
   // 1. Generate title if missing
   if (!this.title && this.bedrooms && this.propertyType && this.location) {
-    this.title = `${this.bedrooms} BHK ${this.propertyType} in ${this.location}`;
+    let loc = this.location;
+    if (this.town) loc += `, ${this.town}`;
+    if (this.village) loc += `, ${this.village}`;
+    this.title = `${this.bedrooms} BHK ${this.propertyType} in ${loc}`;
   }
 
   // 2. Generate slug from title if modified or missing
@@ -123,7 +132,7 @@ propertySchema.pre('validate', function (next) {
 });
 
 // FIX: Add indexes for performant search instead of full collection $regex scans
-propertySchema.index({ location: 'text', state: 'text', title: 'text' });
+propertySchema.index({ location: 'text', state: 'text', title: 'text', town: 'text', village: 'text' });
 propertySchema.index({ status: 1, type: 1, price: 1 });
 propertySchema.index({ postedBy: 1 });
 

@@ -30,6 +30,7 @@ import { environment } from '../../../environments/environment';
           <!-- BUY / RENT FORM -->
           <form *ngIf="activePersona !== 'sell'" [formGroup]="searchForm" (ngSubmit)="onSearch()">
             <div class="row g-3">
+              <!-- State Select -->
               <div class="col-md-3">
                 <div class="form-floating">
                   <select class="form-select border-0" id="stateSelect" formControlName="state" (change)="onStateChange()">
@@ -39,15 +40,31 @@ import { environment } from '../../../environments/environment';
                   <label for="stateSelect" class="text-muted small">State</label>
                 </div>
               </div>
+
+              <!-- City Select (Swap Logic) -->
               <div class="col-md-3">
-                <div class="form-floating">
-                  <select class="form-select border-0" id="citySelect" formControlName="location">
+                <div class="form-floating position-relative h-100">
+                  <!-- Normal Dropdown -->
+                  <select *ngIf="searchForm.get('location')?.value !== 'Others'" class="form-select border-0" id="citySelect" formControlName="location">
                     <option value="">{{ selectedState ? 'Select City' : 'Major Cities' }}</option>
                     <option *ngFor="let c of filteredCities" [value]="c">{{ c }}</option>
                   </select>
-                  <label for="citySelect" class="text-muted small">City/Locality</label>
+                  <label *ngIf="searchForm.get('location')?.value !== 'Others'" for="citySelect" class="text-muted small">City/Locality</label>
+
+                  <!-- Custom Input when "Others" selected -->
+                  <div *ngIf="searchForm.get('location')?.value === 'Others'" class="d-flex align-items-center bg-white rounded-3 h-100">
+                    <div class="form-floating flex-grow-1">
+                      <input type="text" class="form-control border-0" id="otherCityInput" formControlName="otherLocation" placeholder="Enter City Name">
+                      <label for="otherCityInput" class="text-muted small">Enter City Name</label>
+                    </div>
+                    <button type="button" class="btn btn-link text-danger p-2 h-100 d-flex align-items-center" title="Back to list" (click)="searchForm.patchValue({location: '', otherLocation: ''})">
+                      <i class="bi bi-x-circle-fill fs-5"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              <!-- Property Type -->
               <div class="col-md-3">
                  <div class="form-floating">
                   <select class="form-select border-0" id="propSelect" formControlName="propertyType">
@@ -57,6 +74,8 @@ import { environment } from '../../../environments/environment';
                   <label for="propSelect" class="text-muted small">Property Type</label>
                 </div>
               </div>
+
+              <!-- Search Button -->
               <div class="col-md-3 d-flex align-items-center justify-content-center">
                 <button type="submit" class="btn btn-forest w-100 h-100 py-3 fw-bold text-white shadow-sm shimmer rounded-4">
                   <i class="bi bi-search me-2"></i> Search Properties
@@ -104,7 +123,7 @@ import { environment } from '../../../environments/environment';
               <div class="card-body">
                 <h5 class="card-title text-truncate fw-bold">{{ prop.title }}</h5>
                 <p class="text-primary fw-bold fs-5 mb-2">{{ prop.price | currency:'INR' }}</p>
-                <p class="text-muted small mb-3"><i class="bi bi-geo-alt"></i> {{ prop.location }}{{ prop.state ? ', ' + prop.state : '' }}</p>
+                <p class="text-muted small mb-3"><i class="bi bi-geo-alt"></i> <span *ngIf="prop.village">{{ prop.village }}, </span><span *ngIf="prop.town">{{ prop.town }}, </span>{{ prop.location }}{{ prop.state ? ', ' + prop.state : '' }}</p>
                 
                 <div class="d-flex justify-content-between text-muted small mb-3 border-top pt-3">
                   <span><i class="bi bi-house"></i> {{ prop.propertyType }}</span>
@@ -204,6 +223,7 @@ export class PropertiesListComponent implements OnInit {
       type: [''],
       state: [''],
       location: [''],
+      otherLocation: [''],
       propertyType: ['']
     });
     this.filteredCities = Object.values(this.statesData).flat().sort();
@@ -276,7 +296,11 @@ export class PropertiesListComponent implements OnInit {
     const formVals = this.searchForm.value;
     queryParams.type = this.activePersona === 'rent' ? 'rent' : 'sale';
     if (formVals.state) queryParams.state = formVals.state;
-    if (formVals.location) queryParams.location = formVals.location;
+    if (formVals.location === 'Others' && formVals.otherLocation) {
+      queryParams.location = formVals.otherLocation;
+    } else if (formVals.location) {
+      queryParams.location = formVals.location;
+    }
     if (formVals.propertyType) queryParams.propertyType = formVals.propertyType;
     
     // Instead of raw router.navigate, let's update current queryParams

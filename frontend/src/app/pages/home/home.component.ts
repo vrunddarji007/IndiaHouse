@@ -28,6 +28,7 @@ import { PropertyService } from '../../services/property.service';
           <!-- BUY / RENT FORM -->
           <form *ngIf="activePersona !== 'sell'" [formGroup]="searchForm" (ngSubmit)="onSearch()">
             <div class="row g-3">
+              <!-- State Select -->
               <div class="col-md-3">
                 <div class="form-floating">
                   <select class="form-select border-0" id="stateSelect" formControlName="state" (change)="onStateChange()">
@@ -37,13 +38,27 @@ import { PropertyService } from '../../services/property.service';
                   <label for="stateSelect" class="text-muted small">State</label>
                 </div>
               </div>
+
+              <!-- City Select (Swap Logic) -->
               <div class="col-md-3">
-                <div class="form-floating">
-                  <select class="form-select border-0" id="citySelect" formControlName="location">
+                <div class="form-floating position-relative h-100">
+                  <!-- Normal Dropdown -->
+                  <select *ngIf="searchForm.get('location')?.value !== 'Others'" class="form-select border-0" id="citySelect" formControlName="location">
                     <option value="">{{ selectedState ? 'Select City' : 'Major Cities' }}</option>
                     <option *ngFor="let c of filteredCities" [value]="c">{{ c }}</option>
                   </select>
-                  <label for="citySelect" class="text-muted small">City/Locality</label>
+                  <label *ngIf="searchForm.get('location')?.value !== 'Others'" for="citySelect" class="text-muted small">City/Locality</label>
+
+                  <!-- Custom Input when "Others" selected -->
+                  <div *ngIf="searchForm.get('location')?.value === 'Others'" class="d-flex align-items-center bg-white rounded-3 h-100">
+                    <div class="form-floating flex-grow-1">
+                      <input type="text" class="form-control border-0" id="otherCityInput" formControlName="otherLocation" placeholder="Enter City Name">
+                      <label for="otherCityInput" class="text-muted small">Enter City Name</label>
+                    </div>
+                    <button type="button" class="btn btn-link text-danger p-2 h-100 d-flex align-items-center" title="Back to list" (click)="searchForm.patchValue({location: '', otherLocation: ''})">
+                      <i class="bi bi-x-circle-fill fs-5"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
               <div class="col-md-3">
@@ -85,21 +100,21 @@ import { PropertyService } from '../../services/property.service';
       <div class="container">
         <div class="row text-center g-4">
           <div class="col-md-4">
-            <div class="p-3">
+            <div class="feature-card p-3">
               <i class="bi bi-shield-check fs-1 text-forest mb-3 d-block"></i>
               <h5 class="fw-bold">Verified Listings</h5>
               <p class="text-muted small">Every property is manually checked for authenticity.</p>
             </div>
           </div>
           <div class="col-md-4">
-            <div class="p-3">
+            <div class="feature-card p-3">
               <i class="bi bi-person-badge fs-1 text-forest mb-3 d-block"></i>
               <h5 class="fw-bold">RERA Approved</h5>
               <p class="text-muted small">Only licensed builders and certified projects.</p>
             </div>
           </div>
           <div class="col-md-4">
-            <div class="p-3">
+            <div class="feature-card p-3">
               <i class="bi bi-hand-thumbs-up fs-1 text-forest mb-3 d-block"></i>
               <h5 class="fw-bold">Expert Guidance</h5>
               <p class="text-muted small">Free consultation for first-time home buyers.</p>
@@ -201,6 +216,7 @@ export class HomeComponent implements OnInit {
       type: [''],
       state: [''],
       location: [''],
+      otherLocation: [''],
       propertyType: ['']
     });
 
@@ -225,7 +241,11 @@ export class HomeComponent implements OnInit {
     const formVals = this.searchForm.value;
     queryParams.type = this.activePersona === 'rent' ? 'rent' : 'sale';
     if (formVals.state) queryParams.state = formVals.state;
-    if (formVals.location) queryParams.location = formVals.location;
+    if (formVals.location === 'Others' && formVals.otherLocation) {
+      queryParams.location = formVals.otherLocation;
+    } else if (formVals.location) {
+      queryParams.location = formVals.location;
+    }
     if (formVals.propertyType) queryParams.propertyType = formVals.propertyType;
     
     this.router.navigate(['/properties'], { queryParams });

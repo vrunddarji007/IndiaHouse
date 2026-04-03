@@ -21,7 +21,10 @@ import { SeoService } from '../../services/seo.service';
       <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
         <div>
           <h1 class="fw-bold mb-1">{{ property()!.title }}</h1>
-          <p class="text-muted fs-5 mb-0"><i class="bi bi-geo-alt text-primary"></i> {{ property()!.location }}{{ property()!.state ? ', ' + property()!.state : '' }}</p>
+          <p class="text-muted fs-5 mb-0">
+            <i class="bi bi-geo-alt text-primary"></i> 
+            <span *ngIf="property()!.village">{{ property()!.village }}, </span><span *ngIf="property()!.town">{{ property()!.town }}, </span>{{ property()!.location }}{{ property()!.state ? ', ' + property()!.state : '' }}
+          </p>
           <p class="text-secondary small mb-2" *ngIf="property()!.address"><i class="bi bi-house-door text-secondary"></i> {{ property()!.address }}</p>
           
           <!-- Stars -->
@@ -155,9 +158,11 @@ import { SeoService } from '../../services/seo.service';
                     <i class="bi bi-info-circle-fill"></i> FULL ADDRESS
                   </h6>
                   <p class="text-dark fw-bold mb-2 fs-5" style="line-height: 1.4;">{{ property()!.address || 'N/A' }}</p>
-                  <div class="mb-3">
-                    <span class="badge bg-white text-dark border p-2 mb-1 me-1"><i class="bi bi-geo-alt text-forest me-1"></i>{{ property()!.location }}</span>
-                    <span class="badge bg-white text-dark border p-2 mb-1" *ngIf="property()!.state"><i class="bi bi-map text-forest me-1"></i>{{ property()!.state }}</span>
+                  <div class="mb-3 d-flex flex-wrap gap-2">
+                    <span class="badge bg-white text-dark border p-2" *ngIf="property()!.village"><i class="bi bi-house-door text-forest me-1"></i>Village: {{ property()!.village }}</span>
+                    <span class="badge bg-white text-dark border p-2" *ngIf="property()!.town"><i class="bi bi-building text-forest me-1"></i>Town: {{ property()!.town }}</span>
+                    <span class="badge bg-white text-dark border p-2"><i class="bi bi-geo-alt text-forest me-1"></i>{{ property()!.location }}</span>
+                    <span class="badge bg-white text-dark border p-2" *ngIf="property()!.state"><i class="bi bi-map text-forest me-1"></i>{{ property()!.state }}</span>
                   </div>
                   
                   <div *ngIf="property()!.nearbyLandmarks?.length" class="mt-4">

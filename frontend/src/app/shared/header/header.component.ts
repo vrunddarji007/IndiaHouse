@@ -14,11 +14,11 @@ import { filter } from 'rxjs/operators';
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
       <div class="container">
         <div class="d-flex align-items-center">
-          <button *ngIf="showBack" (click)="goBack()" class="btn btn-link text-white p-0 me-3 hover-lift d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; border: 2px solid rgba(255,255,255,0.4); border-radius: 8px; text-decoration: none;">
+          <button *ngIf="showBack" (click)="goBack()" class="btn btn-link text-white p-0 me-3 hover-lift d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; border: 1px solid rgba(255, 255, 255, 0.43); border-radius: 8px; text-decoration: none;">
             <i class="bi bi-chevron-left fs-5" style="-webkit-text-stroke: 1.2px currentColor;"></i>
           </button>
           <a class="navbar-brand fw-bold mb-0" routerLink="/">
-            <span class="text-primary">India</span>Homes
+            <span class="text-primary " style="background: linear-gradient(135deg, #ff5200, #ffffff, #046a38); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">India</span>Homes
           </a>
         </div>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
@@ -30,8 +30,8 @@ import { filter } from 'rxjs/operators';
             <li class="nav-item">
               <a class="nav-link" routerLink="/properties" routerLinkActive="active">Properties</a>
             </li>
-            <ng-container *ngIf="user">
-              <li class="nav-item"><a class="nav-link" routerLink="/dashboard" routerLinkActive="active">Dashboard</a></li>
+            <ng-container *ngIf="user && (user.isProfileComplete || user.role === 'host')">
+              <li class="nav-item" *ngIf="user.role !== 'host'"><a class="nav-link" routerLink="/dashboard" routerLinkActive="active">Dashboard</a></li>
               <li class="nav-item" *ngIf="user.role === 'buyer'"><a class="nav-link" routerLink="/favorites" routerLinkActive="active">Favorites</a></li>
               <li class="nav-item"><a class="nav-link" routerLink="/messages" routerLinkActive="active">Messages</a></li>
             </ng-container>
@@ -42,6 +42,7 @@ import { filter } from 'rxjs/operators';
             </li>
           </ul>
 
+          <!-- Auth & Profile / Property Button (all grouped right) -->
           <!-- Auth & Profile / Property Button (all grouped right) -->
           <ul class="navbar-nav ms-auto align-items-center gap-1" *ngIf="!user">
             <li class="nav-item">
@@ -56,7 +57,7 @@ import { filter } from 'rxjs/operators';
             </li>
           </ul>
 
-          <ul class="navbar-nav ms-auto align-items-center gap-2" *ngIf="user">
+          <ul class="navbar-nav ms-auto align-items-center gap-2" *ngIf="user && (user.isProfileComplete || user.role === 'host')">
             <li class="nav-item" *ngIf="user.role === 'agent' || user.role === 'host'">
               <a class="nav-link get-started-link d-flex align-items-center gap-1 cursor-pointer" (click)="onPropertyAction()">
                 <i class="bi bi-plus-circle-fill"></i> Property
@@ -254,4 +255,3 @@ export class HeaderComponent {
   }
 
 }
-

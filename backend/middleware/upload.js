@@ -23,8 +23,8 @@ const storage = multer.diskStorage({
     cb(null, dest);
   },
   filename(req, file, cb) {
-    // Generate unique filename: timestamp + originalname
-    cb(null, `${Date.now()}-${file.originalname}`);
+    // Generate safe filename: timestamp + extension
+    cb(null, `${Date.now()}${path.extname(file.originalname).toLowerCase()}`);
   },
 });
 

@@ -44,12 +44,60 @@ import { Map, tileLayer, marker, icon, Marker } from 'leaflet';
               <label class="form-label">Description*</label>
               <textarea class="form-control" formControlName="description" rows="4" placeholder="Describe the property..."></textarea>
             </div>
-
-            <h4 class="text-primary mb-3 mt-5">Property Details</h4>
+            
+            <div class="d-flex justify-content-between align-items-center mb-3 mt-5">
+              <h4 class="text-primary mb-0">Property Details</h4>
+              <button type="button" class="btn btn-forest btn-sm text-white shadow-sm" (click)="getCurrentLocation()" [disabled]="locating">
+                <i class="bi bi-geo-alt-fill me-1"></i>
+                {{ locating ? 'Locating...' : '📍 Use My Live Location' }}
+              </button>
+            </div>
+            
             <div class="row g-3 mb-4">
+              <!-- Live Location Map & Note -->
+              <div class="d-flex justify-content-between align-items-center mb-0 position-relative w-100">
+                <h6 class="text-primary mb-0">Property Location (GPS)*</h6>
+                
+                <!-- Search Slider Container -->
+                <div class="d-flex align-items-center position-relative" style="height: 45px; z-index: 5;">
+                  
+                  <!-- The Slide-out Search Bar -->
+                  <div class="search-bar-slider" [class.open]="showSearchMap">
+                    <div class="input-group h-100 w-100 search-input-pill">
+                      <span class="input-group-text bg-white border-0 ps-3 pe-2"><i class="bi bi-geo-alt text-muted"></i></span>
+                      <input type="text" class="form-control border-0 px-1" style="box-shadow: none;" placeholder="Search any location..." #mapSearchInput (keyup.enter)="searchMapLocation(mapSearchInput.value)">
+                      <button class="btn btn-forest px-3 text-white border-0" type="button" (click)="searchMapLocation(mapSearchInput.value)" [disabled]="isSearchingLocation">
+                        <span *ngIf="isSearchingLocation" class="spinner-border spinner-border-sm me-1"></span>
+                        <span *ngIf="!isSearchingLocation">Search</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- The Trigger Button -->
+                  <button type="button" class="btn btn-white rounded-circle shadow-sm border search-trigger-btn" (click)="showSearchMap = !showSearchMap" title="Toggle Map Search">
+                    <i class="bi fs-6 text-dark" [class.bi-search]="!showSearchMap" [class.bi-x-lg]="showSearchMap"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="col-12 mb-2">
+                <div class="alert alert-warning py-2 mb-3 mt-2">
+                  <small class="fw-medium d-block" style="line-height: 1.4;">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <strong>Note:</strong> Please share your live location while standing at the property site to ensure accurate verification and assessment of the property location.
+                    <br><span class="text-muted ms-3">(संपत्ति स्थल पर खड़े रहते हुए कृपया अपनी लाइव लोकेशन साझा करें ताकि संपत्ति के स्थान का सटीक सत्यापन और मूल्यांकन सुनिश्चित किया जा सके।)</span>
+                  </small>
+                </div>
+
+                <div id="postMap" class="rounded-4 border shadow-sm mb-2" style="height: 350px; z-index: 1;"></div>
+                <div class="form-text text-muted" *ngIf="propertyForm.get('lat')?.value">
+                  <i class="bi bi-crosshair me-1"></i> GPS Captured: {{ propertyForm.get('lat')?.value | number:'1.4-4' }}, {{ propertyForm.get('lng')?.value | number:'1.4-4' }}
+                  <span *ngIf="geoLoading" class="ms-2 text-primary"><span class="spinner-border spinner-border-sm"></span> Detecting location...</span>
+                </div>
+              </div>
               <div class="col-md-6">
                 <label class="form-label text-muted fw-bold small">State*</label>
-                <select class="form-select border-0 bg-light" formControlName="state" (change)="onStateChange()">
+                <select class="form-select border bg-light" formControlName="state" (change)="onStateChange()">
                   <option value="">Select State</option>
                   <option *ngFor="let s of states" [value]="s">{{ s }}</option>
                 </select>
@@ -57,15 +105,35 @@ import { Map, tileLayer, marker, icon, Marker } from 'leaflet';
               <div class="col-md-6">
                 <label class="form-label text-muted fw-bold small">City*</label>
                 <div *ngIf="propertyForm.get('location')?.value !== 'Others'">
-                  <select class="form-select border-0 bg-light" formControlName="location">
+                  <select class="form-select border bg-light" formControlName="location">
                     <option value="">{{ selectedState ? 'Select City' : 'Select State first' }}</option>
                     <option *ngFor="let city of filteredCities" [value]="city">{{ city }}</option>
                   </select>
                 </div>
                 <!-- Custom City Input if "Others" selected -->
                 <div *ngIf="propertyForm.get('location')?.value === 'Others'" class="input-group">
-                  <input type="text" class="form-control border-0 bg-light" placeholder="Type city name..." #customPropCity (blur)="propertyForm.patchValue({location: customPropCity.value})">
+                  <input type="text" class="form-control border bg-light" placeholder="Type city name..." #customPropCity (blur)="propertyForm.patchValue({location: customPropCity.value})">
                   <button type="button" class="btn btn-outline-secondary btn-sm" (click)="propertyForm.patchValue({location: ''})">✕</button>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label text-muted fw-bold small uppercase">Town</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border" *ngIf="geoLoading"><span class="spinner-border spinner-border-sm text-primary"></span></span>
+                  <input type="text" class="form-control border bg-light" formControlName="town" placeholder="Auto-detected from GPS or type manually">
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label text-muted fw-bold small uppercase">Village</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border" *ngIf="geoLoading"><span class="spinner-border spinner-border-sm text-primary"></span></span>
+                  <input type="text" class="form-control border bg-light" formControlName="village" placeholder="Auto-detected from GPS or type manually">
+                </div>
+              </div>
+              <div class="col-12" *ngIf="geoDetected">
+                <div class="alert alert-success py-2 mb-0 small d-flex align-items-center gap-2">
+                  <i class="bi bi-check-circle-fill"></i>
+                  <span><strong>Auto-detected:</strong> {{ geoDetected }}</span>
                 </div>
               </div>
               <div class="col-md-6">
@@ -97,27 +165,9 @@ import { Map, tileLayer, marker, icon, Marker } from 'leaflet';
                 </select>
               </div>
 
-              <!-- Live Location Section -->
-              <div class="col-12 mt-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h4 class="text-primary mb-0">Property Location (GPS)*</h4>
-                  <button type="button" class="btn btn-forest btn-sm text-white" (click)="getCurrentLocation()" [disabled]="locating">
-            <i class="bi bi-geo-alt-fill me-1"></i>
-            {{ locating ? 'Locating...' : '📍 Use My Live Location' }}
-          </button>
-        </div>
-        <div class="mb-3 px-1">
-          <small class="text-danger fw-medium d-block">
-            <strong>Note:</strong> "Please share your live location while standing at the property site to ensure accurate verification and assessment of the property location. (संपत्ति स्थल पर खड़े रहते हुए कृपया अपनी लाइव लोकेशन साझा करें ताकि संपत्ति के स्थान का सटीक सत्यापन और मूल्यांकन सुनिश्चित किया जा सके।)"
-          </small>
-        </div>
-        <div id="postMap" class="rounded-4 border shadow-sm mb-2" style="height: 500px; z-index: 1;"></div>
-                <div class="form-text text-muted" *ngIf="propertyForm.get('lat')?.value">
-                  Location Captured: {{ propertyForm.get('lat')?.value | number:'1.4-4' }}, {{ propertyForm.get('lng')?.value | number:'1.4-4' }}
-                </div>
-              </div>
-            </div>
 
+            </div>
+              
             <h4 class="text-primary mb-3 mt-5">Images</h4>
             <div class="mb-4">
               <label class="form-label d-block text-muted fw-bold small">Upload Images* (Minimum 1, Max 30, Currently: {{ images.length }})</label>
@@ -163,6 +213,45 @@ import { Map, tileLayer, marker, icon, Marker } from 'leaflet';
     .upload-zone:hover { border-color: #0d6efd !important; background: #f0f7ff !important; }
     .cursor-pointer { cursor: pointer; }
     .bg-light-primary { background: rgba(13, 110, 253, 0.05); }
+
+    .search-trigger-btn {
+      width: 45px;
+      height: 45px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      position: relative;
+      background: #ffffff;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .search-trigger-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+    }
+    
+    .search-bar-slider {
+      position: absolute;
+      right: 22px; /* starts behind the trigger button */
+      width: 0px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy elegant transition */
+      height: 45px;
+    }
+    .search-bar-slider.open {
+      width: 350px; /* slides out much further to the left */
+      opacity: 1;
+      visibility: visible;
+      right: 55px; /* pop out to the left of the expanded button */
+    }
+    .search-input-pill {
+      border-radius: 50px;
+      overflow: hidden;
+      border: 1px solid #e0e0e0;
+      background: white;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
   `]
 })
 export class PostPropertyComponent {
@@ -217,6 +306,10 @@ export class PostPropertyComponent {
   
   loading = false;
   locating = false;
+  geoLoading = false;
+  isSearchingLocation = false;
+  showSearchMap = false;
+  geoDetected = '';
   error = '';
   mapInstance!: Map;
   markerInstance!: Marker;
@@ -238,6 +331,8 @@ export class PostPropertyComponent {
       furnishing: ['Unfurnished'],
       state: ['', Validators.required],
       location: ['', Validators.required],
+      town: [''],
+      village: [''],
       address: ['', Validators.required],
       lat: ['', Validators.required],
       lng: ['', Validators.required]
@@ -316,8 +411,108 @@ export class PostPropertyComponent {
     );
   }
 
+  searchMapLocation(query: string) {
+    if (!query || query.trim() === '') return;
+    this.isSearchingLocation = true;
+    
+    // Nominatim geocoding API to search via text
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`)
+      .then(res => res.json())
+      .then(data => {
+        this.isSearchingLocation = false;
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          
+          this.mapInstance.setView([lat, lng], 13);
+          this.markerInstance.setLatLng([lat, lng]);
+          this.updateCoords(lat, lng);
+        } else {
+          alert('Location not found. Please try a more specific search term (e.g. "Dahod, Gujarat").');
+        }
+      })
+      .catch(err => {
+        this.isSearchingLocation = false;
+        alert('Error searching for location. Please try again.');
+      });
+  }
+
   private updateCoords(lat: number, lng: number) {
     this.propertyForm.patchValue({ lat, lng });
+    this.reverseGeocode(lat, lng);
+  }
+
+  private reverseGeocode(lat: number, lng: number) {
+    this.geoLoading = true;
+    this.geoDetected = '';
+    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`)
+      .then(res => res.json())
+      .then(data => {
+        this.geoLoading = false;
+        
+        const stateName = data.principalSubdivision || '';
+        let village = data.locality || '';
+        let town = data.city || '';
+        let district = '';
+
+        if (data.localityInfo?.administrative) {
+          const admin = data.localityInfo.administrative;
+          // Find district (adminLevel 5)
+          const distObj = admin.find((a: any) => a.adminLevel === 5);
+          if (distObj) district = distObj.name.replace(' district', '').trim();
+          
+          // Find town/taluka (adminLevel 6) if not already found
+          if (!town) {
+             const townObj = admin.find((a: any) => a.adminLevel === 6);
+             if (townObj) town = townObj.name.replace(' Taluka', '').trim();
+          }
+        }
+
+        const patch: any = {};
+        // Fill base variables
+        if (village) patch.village = village;
+        if (town) patch.town = town;
+
+        if (stateName) {
+          // Normalize and match state
+          const matchedState = this.states.find(s => 
+            s.toLowerCase() === stateName.toLowerCase() ||
+            stateName.toLowerCase().includes(s.toLowerCase().replace(' (nct)', '').replace(/\s*\(.*\)/, ''))
+          );
+
+          if (matchedState) {
+            patch.state = matchedState;
+            this.selectedState = matchedState;
+            this.filteredCities = [...this.statesData[matchedState], 'Others'];
+
+            // Match City to District or let it fall back
+            let matchedCity = this.statesData[matchedState].find(c => 
+               (district && c.toLowerCase() === district.toLowerCase()) || 
+               (town && c.toLowerCase() === town.toLowerCase()) ||
+               (data.city && c.toLowerCase() === data.city.toLowerCase())
+            );
+
+            if (matchedCity) {
+               patch.location = matchedCity;
+            } else {
+               const customCity = district || town || data.city;
+               if (customCity) {
+                 this.filteredCities.unshift(customCity); // Ensure it's selectable in the UI
+                 patch.location = customCity;
+               }
+            }
+          }
+        }
+
+        this.propertyForm.patchValue(patch);
+
+        // Build detected summary text for UI
+        const parts = [patch.village, patch.town, patch.location, patch.state].filter(Boolean);
+        this.geoDetected = parts.join(', ');
+      })
+      .catch(() => {
+        this.geoLoading = false;
+      });
   }
 
   onStateChange() {
@@ -387,7 +582,8 @@ export class PostPropertyComponent {
     
     // Append all form fields
     Object.keys(this.propertyForm.value).forEach(key => {
-      const val = this.propertyForm.value[key];
+      let val = this.propertyForm.value[key];
+      if (typeof val === 'string') val = val.trim();
       if (val !== null && val !== '') {
         formData.append(key, val);
       }

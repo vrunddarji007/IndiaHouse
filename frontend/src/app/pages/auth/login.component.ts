@@ -4,6 +4,8 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } 
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
+declare var google: any;
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -53,13 +55,25 @@ import { AuthService } from '../../services/auth.service';
                     Request for un-suspension
                     </a>
                   </div>
-
                   <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 fw-bold mt-3" [disabled]="loginForm.invalid || loading"
                     style="background: linear-gradient(-135deg, var(--c-forest), var(--c-deep-green)); border: none; padding: 14px;">
                     <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
                     Log In
                   </button>
                 </form>
+
+                <!-- Google Login Divider -->
+                <div class="d-flex align-items-center my-4">
+                  <hr class="flex-grow-1">
+                  <span class="mx-3 text-muted small fw-bold">OR CONTINUE WITH</span>
+                  <hr class="flex-grow-1">
+                </div>
+
+                <div class="d-flex justify-content-center mt-2">
+                  <div class="glass-google-wrapper w-100 p-3 rounded-4 animate__animated animate__fadeInUp animate__delay-1s">
+                    <div id="googleBtn" class="w-100 google-btn-styled"></div>
+                  </div>
+                </div>
 
                 <p class="text-center mt-4 mb-0 small" style="color: var(--auth-text-color);">Don't have an account? <a routerLink="/auth/register" class="fw-bold text-decoration-none" style="color: var(--c-rose);">Sign Up</a></p>
               </div>
@@ -404,6 +418,48 @@ export class LoginComponent {
       password: ['', Validators.required]
     });
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+  }
+
+  ngOnInit() {
+    this.initializeGoogleLogin();
+  }
+
+  initializeGoogleLogin() {
+    if (typeof google !== 'undefined') {
+      google.accounts.id.initialize({
+        client_id: '1021134306283-igdic6fv5o89jo3io59thuhgiiipntg4.apps.googleusercontent.com',
+        callback: (resp: any) => this.handleGoogleCredential(resp)
+      });
+      google.accounts.id.renderButton(
+        document.getElementById('googleBtn'),
+        { theme: 'outline', size: 'large', width: '100%', shape: 'rectangular' }
+      );
+    } else {
+      setTimeout(() => this.initializeGoogleLogin(), 1000);
+    }
+  }
+
+  handleGoogleCredential(resp: any) {
+    this.loading = true;
+    this.authService.googleLogin(resp.credential).subscribe({
+      next: (res: any) => {
+        if (res.isNewUser || !res.isProfileComplete) {
+          // If profile is incomplete, go back to Role/Profile selection
+          this.router.navigate(['/auth/register'], { queryParams: { google: 'true', step: 2 } });
+        } else if (res.needsTerms) {
+          this.router.navigate(['/auth/register'], { queryParams: { google: 'true', step: 5 } });
+        } else {
+          this.router.navigate([this.returnUrl]);
+        }
+      },
+      error: err => {
+        console.error('[GOOGLE LOGIN ERROR]', err);
+        const detail = err.error?.message || err.message || JSON.stringify(err);
+        this.error = 'Google Auth Failed: ' + detail;
+        this.loading = false;
+        alert('Diagnostic Error: ' + detail);
+      }
+    });
   }
 
   onSubmit() {
