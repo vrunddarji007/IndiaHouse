@@ -92,7 +92,7 @@ const sendOTPEmail = async (to, otp, name = 'User') => {
   `;
 
   const mailOptions = {
-    from: `"IndiaHomes" <noreply@indiahomes.com>`,
+    from: `"${process.env.FROM_NAME || 'IndiaHomes'}" <${process.env.FROM_EMAIL || 'noreply@indiahomes.com'}>`,
     to,
     subject: `${otp} is your IndiaHomes verification code`,
     html: htmlTemplate,
