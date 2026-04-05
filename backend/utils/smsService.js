@@ -52,10 +52,7 @@ const sendOTPSMS = async (phone, otp) => {
     }
   } else {
     // Simulation mode
-    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-    console.log(`📱 [SMS SIMULATION] To: ${normalizedPhone}`);
-    console.log(`   Message: ${messageBody}`);
-    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`📱 [SMS SIMULATION] To: ${normalizedPhone} | Message: ${messageBody}`);
     return { success: true, simulated: true };
   }
 };

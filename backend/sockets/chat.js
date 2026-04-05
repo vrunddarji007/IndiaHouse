@@ -39,7 +39,6 @@ const chatSocket = (server) => {
     if (userId) {
       onlineUsers.set(userId, socket.id);
       userRooms.set(socket.id, new Set());
-      console.log(`User ${userId} is LIVE [Socket: ${socket.id}]`);
 
       // Notify others (especially host)
       io.emit('onlineStatusUpdate', { userId, status: 'online' });
