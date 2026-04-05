@@ -109,6 +109,8 @@ export class DashboardComponent implements OnInit {
   }
 
   loadMyProperties() {
+    // Calling general getProperties endpoint, simulating "my listings" because I am not using a dedicated /my endpoint, we get our own via normal filtering or logic
+    // We fetch all and filter by current user locally for this portfolio demo. Or standard query if API supported it fully.
     this.propertyService.getProperties({ status: 'all' }).subscribe({
       next: (res: any) => {
         const mine = res.data.filter((p:any) => p.postedBy?._id === this.currentUser()?._id);

@@ -29,7 +29,7 @@ exports.getDashboardUsers = async (req, res, next) => {
       filter.role = req.query.role;
     }
 
-    const [users, total, globalStats] = await Promise.all([
+    const [users, total] = await Promise.all([
       User.find(filter)
         .select('name email phone role createdAt isVerified lastLogin status suspendedUntil')
         .sort({ createdAt: -1 })
@@ -37,19 +37,7 @@ exports.getDashboardUsers = async (req, res, next) => {
         .limit(limit)
         .lean(),
       User.countDocuments(filter),
-      User.aggregate([
-        {
-          $group: {
-            _id: null,
-            totalUsers: { $sum: 1 },
-            agents: { $sum: { $cond: [{ $eq: ['$role', 'agent'] }, 1, 0] } },
-            buyers: { $sum: { $cond: [{ $eq: ['$role', 'buyer'] }, 1, 0] } }
-          }
-        }
-      ])
     ]);
-
-    const stats = globalStats[0] || { totalUsers: 0, agents: 0, buyers: 0 };
 
     // Attach online status
     const usersWithOnlineStatus = users.map(user => ({
@@ -60,7 +48,6 @@ exports.getDashboardUsers = async (req, res, next) => {
     res.json({
       success: true,
       data: usersWithOnlineStatus,
-      globalStats: stats,
       pagination: {
         page,
         limit,

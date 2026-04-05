@@ -36,8 +36,12 @@ const initTransporter = async () => {
         pass: testAccount.pass,
       },
     });
-    console.log(`📧 [EMAIL] Auto-created Ethereal test account | User: ${testAccount.user} | Pass: ${testAccount.pass}`); 
-    console.log(`   View emails at: https://ethereal.email`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📧 [EMAIL] Auto-created Ethereal test account');
+    console.log(`   User: ${testAccount.user}`);
+    console.log(`   Pass: ${testAccount.pass}`);
+    console.log('   Emails can be viewed at: https://ethereal.email');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   } catch (err) {
     console.log('[EMAIL] Could not create test account:', err.message);
   }
@@ -92,7 +96,7 @@ const sendOTPEmail = async (to, otp, name = 'User') => {
   `;
 
   const mailOptions = {
-    from: `"${process.env.FROM_NAME || 'IndiaHomes'}" <${process.env.FROM_EMAIL || 'noreply@indiahomes.com'}>`,
+    from: `"IndiaHomes" <noreply@indiahomes.com>`,
     to,
     subject: `${otp} is your IndiaHomes verification code`,
     html: htmlTemplate,
@@ -105,7 +109,11 @@ const sendOTPEmail = async (to, otp, name = 'User') => {
     // Get preview URL (works with Ethereal)
     const previewUrl = nodemailer.getTestMessageUrl(info);
     
-    console.log(`📧 [EMAIL SENT] To: ${to}${previewUrl ? ' | View: ' + previewUrl : ''} | MsgID: ${info.messageId}`);
+    console.log(`\n📧 [EMAIL SENT] To: ${to}`);
+    if (previewUrl) {
+      console.log(`   👁️  View email here: ${previewUrl}`);
+    }
+    console.log(`   MessageID: ${info.messageId}\n`);
     
     return { success: true, messageId: info.messageId, previewUrl };
   } catch (err) {

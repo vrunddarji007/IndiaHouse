@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, inject, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, DestroyRef } from '@angular/core';
 import { CommonModule, DatePipe, CurrencyPipe, TitleCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -6,7 +6,7 @@ import { HostService } from '../../services/host.service';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
 import { environment } from '../../../environments/environment';
-import { timer, Subscription, take, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { timer, Subscription, take } from 'rxjs';
 import { ReportService } from '../../services/report.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -14,7 +14,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   selector: 'app-host-dashboard',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, DatePipe, CurrencyPipe, TitleCasePipe],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-vh-100" style="background: #f0f2f5;">
       <!-- Header -->
@@ -37,30 +36,30 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
       <div class="container py-4" style="margin-top: -20px;">
         <!-- Stats Cards -->
-        <div class="row g-3 mb-4 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5">
-          <div class="col">
+        <div class="row g-3 mb-4">
+          <div class="col-md-3 col-6">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-body text-center">
                 <div class="fs-3 mb-1 text-primary">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                 </div>
-                <h4 class="fw-bold text-primary mb-0">{{ totalUsersCount() }}</h4>
+                <h4 class="fw-bold text-primary mb-0">{{ usersPagination().total }}</h4>
                 <small class="text-muted">Total Users</small>
               </div>
             </div>
           </div>
-          <div class="col">
+          <div class="col-md-3 col-6">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-body text-center">
                 <div class="fs-3 mb-1 text-success">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                 </div>
                 <h4 class="fw-bold text-success mb-0">{{ propertiesPagination().total }}</h4>
-                <small class="text-muted">Properties</small>
+                <small class="text-muted">Total Properties</small>
               </div>
             </div>
           </div>
-          <div class="col">
+          <div class="col-md-3 col-6">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-body text-center">
                 <div class="fs-3 mb-1 text-warning">
@@ -71,18 +70,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
               </div>
             </div>
           </div>
-          <div class="col">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-body text-center">
-                <div class="fs-3 mb-1 text-info">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                </div>
-                <h4 class="fw-bold text-info mb-0">{{ buyerCount() }}</h4>
-                <small class="text-muted">Buyers</small>
-              </div>
-            </div>
-          </div>
-          <div class="col">
+          <div class="col-md-2 col-6">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-body text-center">
                 <div class="fs-3 mb-1 text-danger">
@@ -882,7 +870,6 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
   usersPage = 1;
   userSearch = '';
   userRoleFilter = '';
-  totalUsersCount = signal(0);
   agentCount = signal(0);
   buyerCount = signal(0);
 
@@ -922,9 +909,7 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
   suspenseDuration = '1d';
 
   currentUser = signal<any>(null);
-  
-  private userSearchSubject = new Subject<string>();
-  private propSearchSubject = new Subject<string>();
+  private searchTimeout: any;
 
   constructor(
     private hostService: HostService,
@@ -949,29 +934,7 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
       if (this.activeTab === 'appeals') this.loadAppeals();
       if (this.activeTab === 'reports') this.loadReports();
     });
-
-    // Debounced search
-    this.userSearchSubject.pipe(
-      debounceTime(400),
-      distinctUntilChanged(),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => {
-      this.usersPage = 1;
-      this.loadUsers();
-    });
-
-    this.propSearchSubject.pipe(
-      debounceTime(400),
-      distinctUntilChanged(),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => {
-      this.propsPage = 1;
-      this.loadProperties();
-    });
   }
-  
-  // Property for DestroyRef (inject in constructor)
-  private destroyRef = inject(DestroyRef);
 
   listenForOnlineUpdates() {
     this.messageService.onlineStatus$.subscribe(update => {
@@ -1176,14 +1139,10 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.users.set(res.data);
         this.usersPagination.set(res.pagination);
-        
-        // Use global stats from backend if available
-        if (res.globalStats) {
-          this.totalUsersCount.set(res.globalStats.totalUsers);
-          this.agentCount.set(res.globalStats.agents);
-          this.buyerCount.set(res.globalStats.buyers);
+        if (!this.userSearch && !this.userRoleFilter) {
+          this.agentCount.set(res.data.filter((u: any) => u.role === 'agent').length);
+          this.buyerCount.set(res.data.filter((u: any) => u.role === 'buyer').length);
         }
-        
         this.usersLoading.set(false);
       },
       error: () => this.usersLoading.set(false)
@@ -1208,11 +1167,19 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
   }
 
   onUserSearch() {
-    this.userSearchSubject.next(this.userSearch);
+    clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => {
+      this.usersPage = 1;
+      this.loadUsers();
+    }, 400);
   }
 
   onPropLocationSearch() {
-    this.propSearchSubject.next(this.propLocationFilter);
+    clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => {
+      this.propsPage = 1;
+      this.loadProperties();
+    }, 400);
   }
 
   // ─── Countdown Clock ───

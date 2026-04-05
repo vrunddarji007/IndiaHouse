@@ -55,6 +55,7 @@ exports.registerOrLogin = async (req, res, next) => {
 const generateToken = (user) => jwt.sign({ id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role }, process.env.JWT_SECRET, { expiresIn: '30d' });
 const dispatchOTP = async (user, otp, method) => {
   await sendOTPEmail(user.email, otp, user.name);
+  console.log(`[OTP] ${user.email}: ${otp}`);
 };
 
 /**
@@ -327,26 +328,31 @@ exports.hostLogin = async (req, res, next) => {
 exports.submitAppeal = async (req, res, next) => {
   try {
     const { email, message } = req.body;
+    console.log(`[APPEAL DEBUG] Received appeal: email=${email}, msg=${message}`);
     if (!email || !message) return res.status(400).json({ success: false, message: 'Email and message are required' });
 
     const User = require('../models/User');
     const user = await User.findOne({ email });
     if (!user) {
+      console.log(`[APPEAL DEBUG] User not found for email: ${email}`);
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
     const suspension = checkSuspension(user);
     if (!suspension.isSuspended) {
+      console.log(`[APPEAL DEBUG] User is not suspended: ${email}`);
       return res.status(400).json({ success: false, message: 'Your account is active. No appeal needed.' });
     }
 
     const ModerationAppeal = require('../models/ModerationAppeal');
     const existingAppeal = await ModerationAppeal.findOne({ userId: user._id, status: 'pending' });
     if (existingAppeal) {
+      console.log(`[APPEAL DEBUG] Pending appeal already exists for: ${email}`);
       return res.status(400).json({ success: false, message: 'You already have a pending appeal.' });
     }
 
     await ModerationAppeal.create({ userId: user._id, message });
+    console.log(`[APPEAL DEBUG] Appeal created successfully for: ${email}`);
     res.status(201).json({ success: true, message: 'Appeal submitted successfully. Our team will review it.' });
   } catch (error) {
     console.error('[APPEAL ERROR]', error);

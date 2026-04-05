@@ -5,14 +5,13 @@ const onlineUsers = new Map(); // userId -> socket.id
 const userRooms = new Map(); // socket.id -> Set of rooms (for stopTyping on disconnect)
 
 const chatSocket = (server) => {
-  const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:4200').replace(/\/$/, '');
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
 
   const io = new Server(server, {
     cors: {
       // FIX: Locked down CORS from '*' to the actual frontend origin
       origin: frontendUrl,
       methods: ['GET', 'POST'],
-      credentials: true,
     },
   });
 
@@ -40,6 +39,7 @@ const chatSocket = (server) => {
     if (userId) {
       onlineUsers.set(userId, socket.id);
       userRooms.set(socket.id, new Set());
+      console.log(`User ${userId} is LIVE [Socket: ${socket.id}]`);
 
       // Notify others (especially host)
       io.emit('onlineStatusUpdate', { userId, status: 'online' });
