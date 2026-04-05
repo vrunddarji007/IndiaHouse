@@ -34,9 +34,12 @@ chatSocket(server);
 app.use(express.json());
 app.use(mongoSanitize()); // Prevent NoSQL Injection
 // FIX: Strict CORS instead of origin: *
-const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
+const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:4200').replace(/\/$/, '');
 app.use(cors({ origin: frontendUrl, credentials: true }));
-app.use(helmet({ crossOriginResourcePolicy: false })); // Allow serving images locally
+app.use(helmet({ 
+  crossOriginResourcePolicy: false,
+  crossOriginEmbedderPolicy: false
+})); // Allow serving images and external scripts
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
