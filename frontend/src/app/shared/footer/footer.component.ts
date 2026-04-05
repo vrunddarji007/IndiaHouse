@@ -59,13 +59,13 @@ import { RouterModule } from '@angular/router';
           <div class="col-lg-3 col-md-6">
             <h5 class="footer-heading mb-3">Contact Us</h5>
             <div class="contact-info mb-3">
-              <p class="mb-1 fw-semibold"><i class="bi bi-telephone-fill me-2 text-tricolor-icon"></i>Toll Free - 1800 41 99099</p>
+              <p class="mb-1 fw-semibold"><i class="bi bi-telephone-fill me-2 text-tricolor-icon"></i>Contact Number - 6354252455</p>
               <p class="small text-muted mb-0">9:30 AM to 6:30 PM (Mon-Sun)</p>
             </div>
             <div class="contact-info mb-4">
               <p class="mb-0">
-                <a href="mailto:contact&#64;indiahomes.com" class="footer-email-link">
-                  <i class="bi bi-envelope-fill me-2"></i>Email - contact&#64;indiahomes.com
+                <a href="mailto:darjivrund005&#64;gmail.com" class="footer-email-link">
+                  <i class="bi bi-envelope-fill me-2"></i>Email - darjivrund007&#64;gmail.com
                 </a>
               </p>
             </div>
@@ -96,8 +96,17 @@ import { RouterModule } from '@angular/router';
                 </div>
               </a>
             </div>
+            
           </div>
 
+          <div class="col-12 mt-4 text-center">
+            <span class="fw-bold" style="font-size: 20px; color:red;">
+              <b>🚧 Feature Coming Soon</b><br>
+              The Download on App Store and Get it on Google Play features are currently under development and are not available yet.
+              We’re working hard to make them available soon.<br>
+              Thank you for your patience!
+            </span>
+          </div>
         </div>
       </div>
 
