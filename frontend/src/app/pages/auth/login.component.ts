@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 declare var google: any;
 
@@ -427,7 +428,7 @@ export class LoginComponent {
   initializeGoogleLogin() {
     if (typeof google !== 'undefined') {
       google.accounts.id.initialize({
-        client_id: '1021134306283-igdic6fv5o89jo3io59thuhgiiipntg4.apps.googleusercontent.com',
+        client_id: environment.googleClientId,
         callback: (resp: any) => this.handleGoogleCredential(resp)
       });
       google.accounts.id.renderButton(

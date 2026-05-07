@@ -17,8 +17,9 @@ import { filter } from 'rxjs/operators';
           <button *ngIf="showBack" (click)="goBack()" class="btn btn-link text-white p-0 me-3 hover-lift d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; border: 1px solid rgba(255, 255, 255, 0.43); border-radius: 8px; text-decoration: none;">
             <i class="bi bi-chevron-left fs-5" style="-webkit-text-stroke: 1.2px currentColor;"></i>
           </button>
-          <a class="navbar-brand fw-bold mb-0" routerLink="/">
-            <span class="text-primary " style="background: linear-gradient(135deg, #ff5200, #ffffff, #046a38); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">India</span>Homes
+          <a class="navbar-brand fw-bold mb-0 d-flex align-items-center gap-2" routerLink="/">
+            <img src="logo.png" alt="Logo" style="height: 35px; width: auto;">
+            <span><span class="text-primary" style="background: linear-gradient(135deg, #ff5200, #ffffff, #046a38); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">India</span>Homes</span>
           </a>
         </div>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">

@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { HeaderComponent } from './shared/header/header.component';
 import { FooterComponent } from './shared/footer/footer.component';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -12,9 +13,22 @@ import { FooterComponent } from './shared/footer/footer.component';
     <main class="min-vh-100 mt-5 pt-3">
       <router-outlet></router-outlet>
     </main>
-    <app-footer></app-footer>
+    @if (isHome) {
+      <app-footer></app-footer>
+    }
   `
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   title = 'india-homes';
+  isHome = false;
+
+  constructor(private router: Router) {}
+
+  ngOnInit() {
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: any) => {
+      this.isHome = event.urlAfterRedirects === '/' || event.urlAfterRedirects === '' || event.urlAfterRedirects.startsWith('/?');
+    });
+  }
 }
