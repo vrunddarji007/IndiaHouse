@@ -36,7 +36,7 @@ export class MessageService {
     });
     
     this.socket.on('connect', () => {
-      console.log('Socket connected');
+      // Socket connected
     });
 
     this.socket.on('receiveMessage', (message: Message) => {

@@ -4,6 +4,7 @@ import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from '../../services/message.service';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 import { User, Message, Conversation } from '../../models/interfaces';
 import { environment } from '../../../environments/environment';
 
@@ -627,7 +628,8 @@ export class MessagesComponent implements OnInit, OnDestroy {
     private messageService: MessageService,
     private authService: AuthService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private toast: ToastService
   ) {
     this.authService.currentUser.subscribe(u => this.currentUser.set(u));
     
@@ -1025,12 +1027,12 @@ export class MessagesComponent implements OnInit, OnDestroy {
     if (!otherId) return;
     
     if (confirm('Are you sure you want to clear all messages in this chat? This cannot be undone.')) {
-      this.messageService.clearChat(otherId).subscribe({
+      this.messageService.clearChat(this.selectedUser()!).subscribe({
         next: () => {
           this.currentMessages.set([]);
-          this.showChatMenu = false;
+          this.toast.success('Chat cleared successfully');
         },
-        error: (err) => console.error('Error clearing chat:', err)
+        error: (err) => this.toast.error('Failed to clear chat')
       });
     }
   }

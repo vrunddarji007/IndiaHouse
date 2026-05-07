@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { PropertyService } from '../../services/property.service';
 import { MessageService } from '../../services/message.service';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 import { Property, User } from '../../models/interfaces';
 import { environment } from '../../../environments/environment';
 import { Map, tileLayer, marker, icon, Marker, LatLngExpression, polyline, Polyline } from 'leaflet';
@@ -209,7 +210,7 @@ import { SeoService } from '../../services/seo.service';
                <h6 class="text-muted small fw-bold mb-3 d-flex align-items-center gap-2">
                  <i class="bi bi-sign-turn-right-fill text-danger"></i> ROUTE ITINERARY
                </h6>
-               <div class="custom-scrollbar waypoint-list flex-grow-1" style="max-height: 280px; overflow-y: auto;">
+               <div class="custom-scrollbar waypoint-list flex-grow-1">
                   <div *ngFor="let step of routeInfo.steps; let i = index" class="waypoint-item d-flex gap-3 mb-3 position-relative">
                      <div class="marker-line" *ngIf="i < routeInfo.steps.length - 1"></div>
                      <div class="waypoint-marker">
@@ -394,7 +395,8 @@ export class PropertyDetailComponent implements OnInit {
     public authService: AuthService,
     private seoService: SeoService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private toast: ToastService
   ) {
     this.authService.currentUser.subscribe(user => this.currentUser.set(user));
   }
@@ -488,7 +490,7 @@ export class PropertyDetailComponent implements OnInit {
         this.fetchRoute(curLatLng);
       },
       (err) => {
-        alert('Could not get your location. Please check browser permissions.');
+        this.toast.error('Could not get your location. Please check browser permissions.');
       }
     );
   }
@@ -642,11 +644,11 @@ export class PropertyDetailComponent implements OnInit {
         this.newRating = 0;
         this.newReview = '';
         this.ratingLoading = false;
-        alert('Thank you for rating this property!');
+        this.toast.success('Thank you for rating this property!');
       },
       error: (err) => {
         this.ratingLoading = false;
-        alert(err.error?.message || err.error?.error || 'Error submitting rating');
+        this.toast.error(err.error?.message || err.error?.error || 'Error submitting rating');
       }
     });
   }
@@ -680,12 +682,11 @@ export class PropertyDetailComponent implements OnInit {
     const recipientId = prop.postedBy._id || prop.postedBy;
     this.messageService.sendMessage(prop._id!, recipientId, this.messageText).subscribe({
       next: () => {
-        alert('Message sent successfully!');
+        this.toast.success('Message sent successfully!');
         this.messageText = '';
       },
       error: (err) => {
-        console.error('Send Error:', err);
-        alert(err.error?.message || 'Failed to send message');
+        this.toast.error(err.error?.message || 'Failed to send message');
       }
     });
   }
@@ -704,10 +705,10 @@ export class PropertyDetailComponent implements OnInit {
         await navigator.share(shareData);
       } else {
         navigator.clipboard.writeText(url);
-        alert('Link copied to clipboard!');
+        this.toast.info('Link copied to clipboard!');
       }
     } catch (err) {
-      console.error('Error sharing property:', err);
+      // User cancelled share or other error
     }
   }
 
@@ -729,7 +730,7 @@ export class PropertyDetailComponent implements OnInit {
           this.authService.updateCurrentUser({ favorites: newFavs });
         }
       },
-      error: () => alert('Please login to add favorites.')
+      error: () => this.toast.warning('Please login to add favorites.')
     });
   }
 

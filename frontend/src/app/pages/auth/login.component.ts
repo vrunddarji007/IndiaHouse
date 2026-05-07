@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 import { environment } from '../../../environments/environment';
 
 declare var google: any;
@@ -406,9 +407,10 @@ export class LoginComponent {
 
   constructor(
     private fb: FormBuilder,
-    private route: ActivatedRoute,
     private router: Router,
-    private authService: AuthService
+    private route: ActivatedRoute,
+    private authService: AuthService,
+    private toast: ToastService
   ) {
     if (this.authService.currentUserValue) {
       this.router.navigate(['/']);
@@ -454,11 +456,10 @@ export class LoginComponent {
         }
       },
       error: err => {
-        console.error('[GOOGLE LOGIN ERROR]', err);
-        const detail = err.error?.message || err.message || JSON.stringify(err);
-        this.error = 'Google Auth Failed: ' + detail;
+        const detail = err.error?.message || err.message || 'Google Authentication Failed';
+        this.error = detail;
         this.loading = false;
-        alert('Diagnostic Error: ' + detail);
+        this.toast.error(detail);
       }
     });
   }

@@ -8,6 +8,7 @@ import { MessageService } from '../../services/message.service';
 import { environment } from '../../../environments/environment';
 import { timer, Subscription, take } from 'rxjs';
 import { ReportService } from '../../services/report.service';
+import { ToastService } from '../../services/toast.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -1018,10 +1019,10 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
       if (confirm(`No formal appeal found for ${user.name}. Do you want to manually reactivate this account?`)) {
         this.hostService.updateUserStatus(user._id, 'active').subscribe({
           next: () => {
-            alert('User reactivated successfully.');
+            this.toast.success('User reactivated successfully.');
             this.loadUsers();
           },
-          error: (err) => alert(err.error?.message || 'Failed to reactivate user')
+          error: (err) => this.toast.error(err.error?.message || 'Failed to reactivate user')
         });
       }
     }
@@ -1046,12 +1047,12 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
 
     this.hostService.handleAppeal(appeal._id, action, adminNote).subscribe({
       next: (res) => {
-        alert(res.message);
+        this.toast.success(res.message);
         this.loadAppeals();
         this.loadAppealHistory(); 
         this.loadUsers();
       },
-      error: (err) => alert(err.error?.message || 'Failed to handle appeal')
+      error: (err) => this.toast.error(err.error?.message || 'Failed to handle appeal')
     });
   }
 
@@ -1088,11 +1089,11 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
 
     this.reportService.handleReport(report._id, action, adminNote).subscribe({
       next: (res) => {
-        alert(res.message);
+        this.toast.success(res.message);
         this.loadReports();
         this.loadUsers();
       },
-      error: (err) => alert(err.error?.message || 'Failed to handle report')
+      error: (err) => this.toast.error(err.error?.message || 'Failed to handle report')
     });
   }
 
@@ -1122,9 +1123,9 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
     this.hostService.deleteUser(user._id).subscribe({
       next: () => {
         this.users.set(this.users().filter(u => u._id !== user._id));
-        alert('User deleted permanently.');
+        this.toast.success('User deleted permanently.');
       },
-      error: (err) => alert(err.error?.message || 'Failed to delete user')
+      error: (err) => this.toast.error(err.error?.message || 'Failed to delete user')
     });
   }
 

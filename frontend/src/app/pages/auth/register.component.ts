@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } 
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
+import { ToastService } from '../../services/toast.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -218,7 +219,7 @@ import { environment } from '../../../environments/environment';
                     </h2>
                     <p class="mb-0 small" style="color: white; font-weight: bold;">Step 4 of 5</p>
                   </div>
-                  <div class="card-body p-4 p-md-5 overflow-auto" style="max-height: 65vh;">
+                  <div class="card-body p-4 p-md-5">
                     <form [formGroup]="profileForm" (ngSubmit)="onSaveProfile()">
                       
                       <!-- Basic Info -->
@@ -408,7 +409,7 @@ import { environment } from '../../../environments/environment';
                     <p class="mb-0 small" style="color: white; font-weight: bold;">Final Step</p>
                   </div>
                   <div class="card-body p-4 p-md-5">
-                    <div class="terms-content mb-4 p-3 border rounded overflow-auto" style="max-height: 250px; font-size: 0.85rem; background-color: var(--auth-input-bg); color: var(--auth-text-color);">
+                    <div class="terms-content mb-4 p-3 border rounded" style="font-size: 0.85rem; background-color: var(--auth-input-bg); color: var(--auth-text-color);">
                       <h6 class="fw-bold mb-2" >1. Services Provided</h6>
                       <p class="small" style="color: black;">IndiaHomes is an online intermediary connecting Buyers, Agents, and Hosts. We do not own, verify, or guarantee any properties listed. All transactions are solely between users.</p>
                       <h6 class="fw-bold mb-2">2. User Accounts</h6>
@@ -587,7 +588,8 @@ export class RegisterComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private auth: AuthService,
-    private profileService: ProfileService
+    private profileService: ProfileService,
+    private toast: ToastService
   ) {
     if (this.auth.currentUserValue && this.auth.currentUserValue.isProfileComplete) {
       this.router.navigate(['/']);
@@ -771,8 +773,10 @@ export class RegisterComponent implements OnInit {
   onVerify() {
     this.verifying = true; this.otpError = ''; this.otpSuccess = ''; this.showSuspensionLink = false;
     this.auth.verifyOTP(this.userEmail, this.otpValue).subscribe({
-      next: (res: any) => { this.verifying = false; this.otpSuccess = 'Verified!';
-        if (res.needsPassword) { setTimeout(() => { this.otpVerified = true; this.otpSuccess = ''; }, 800); }
+      next: (res: any) => { 
+        this.verifying = false; 
+        this.toast.success('OTP Verified Successfully!');
+        if (res.needsPassword) { setTimeout(() => { this.otpVerified = true; }, 800); }
         else if (!res.isProfileComplete) { setTimeout(() => { this.step = 4; this.prepareProfileForm(); }, 800); }
         else { setTimeout(() => this.goHome(), 800); }
       },
@@ -795,8 +799,8 @@ export class RegisterComponent implements OnInit {
   onResend() {
     this.otpError = '';
     this.auth.resendOTP(this.userEmail, 'email').subscribe({
-      next: () => { this.otpSuccess = 'New code sent!'; this.startTimer(); },
-      error: (e: any) => { this.otpError = e.error?.message || 'Failed'; }
+      next: () => { this.toast.info('New verification code sent to your email.'); this.startTimer(); },
+      error: (e: any) => { this.toast.error(e.error?.message || 'Failed to resend code'); }
     });
   }
 
@@ -808,10 +812,10 @@ export class RegisterComponent implements OnInit {
     this.passSaving = true; this.passError = '';
     this.auth.setPassword(this.passForm.value.password).subscribe({
       next: () => {
-        this.passSaving = false; this.passSuccess = 'Password set!';
+        this.passSaving = false; 
+        this.toast.success('Password set successfully!');
         setTimeout(() => {
           this.step = 4;
-          this.passSuccess = '';
           this.prepareProfileForm();
         }, 1000);
       },

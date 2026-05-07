@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PropertyService } from '../../services/property.service';
+import { ToastService } from '../../services/toast.service';
 import { Map, tileLayer, marker, icon, Marker } from 'leaflet';
 
 @Component({
@@ -317,7 +318,8 @@ export class PostPropertyComponent {
   constructor(
     private fb: FormBuilder,
     private propertyService: PropertyService,
-    private router: Router
+    private router: Router,
+    private toast: ToastService
   ) {
     this.propertyForm = this.fb.group({
       type: ['sale', Validators.required],
@@ -391,7 +393,7 @@ export class PostPropertyComponent {
 
   getCurrentLocation() {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
+      this.toast.error('Geolocation is not supported by your browser');
       return;
     }
 
@@ -405,7 +407,7 @@ export class PostPropertyComponent {
         this.locating = false;
       },
       (err) => {
-        alert('Could not get your location. Please check permissions.');
+        this.toast.error('Could not get your location. Please check permissions.');
         this.locating = false;
       }
     );
@@ -428,12 +430,12 @@ export class PostPropertyComponent {
           this.markerInstance.setLatLng([lat, lng]);
           this.updateCoords(lat, lng);
         } else {
-          alert('Location not found. Please try a more specific search term (e.g. "Dahod, Gujarat").');
+          this.toast.warning('Location not found. Please try a more specific search term.');
         }
       })
       .catch(err => {
         this.isSearchingLocation = false;
-        alert('Error searching for location. Please try again.');
+        this.toast.error('Error searching for location. Please try again.');
       });
   }
 
@@ -597,7 +599,7 @@ export class PostPropertyComponent {
     this.propertyService.createProperty(formData).subscribe({
       next: (res) => {
         this.loading = false;
-        alert('Property posted successfully!');
+        this.toast.success('Property posted successfully!');
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {

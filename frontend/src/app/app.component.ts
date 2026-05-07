@@ -3,11 +3,12 @@ import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { HeaderComponent } from './shared/header/header.component';
 import { FooterComponent } from './shared/footer/footer.component';
 import { filter } from 'rxjs/operators';
+import { ToastComponent } from './components/toast.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, HeaderComponent, FooterComponent],
+  imports: [RouterOutlet, HeaderComponent, FooterComponent, ToastComponent],
   template: `
     <app-header></app-header>
     <main class="min-vh-100 mt-5 pt-3">
@@ -16,6 +17,7 @@ import { filter } from 'rxjs/operators';
     @if (isHome) {
       <app-footer></app-footer>
     }
+    <app-toast></app-toast>
   `
 })
 export class AppComponent implements OnInit {

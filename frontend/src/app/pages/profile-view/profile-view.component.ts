@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { ProfileService } from '../../services/profile.service';
 import { AuthService } from '../../services/auth.service';
 import { ReportService } from '../../services/report.service';
+import { ToastService } from '../../services/toast.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -290,7 +291,8 @@ export class ProfileViewComponent implements OnInit {
     private authService: AuthService,
     private reportService: ReportService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private toast: ToastService
   ) {}
 
   ngOnInit() {
@@ -332,7 +334,7 @@ export class ProfileViewComponent implements OnInit {
         },
         error: () => {
           this.loading = false;
-          alert('Profile not found or access restricted.');
+          this.toast.error('Profile not found or access restricted.');
           this.router.navigate(['/']);
         }
       });
@@ -375,13 +377,13 @@ export class ProfileViewComponent implements OnInit {
       description: this.reportDescription
     }).subscribe({
       next: (res) => {
-        alert(res.message || 'Report submitted successfully. Thank you for making our platform safer.');
+        this.toast.success(res.message || 'Report submitted successfully. Thank you for making our platform safer.');
         this.reporting = false;
         this.closeReportModal();
       },
       error: (err) => {
         this.reporting = false;
-        alert(err.error?.message || 'Failed to submit report. Please try again later.');
+        this.toast.error(err.error?.message || 'Failed to submit report. Please try again later.');
       }
     });
   }
