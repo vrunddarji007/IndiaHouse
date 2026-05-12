@@ -7,6 +7,13 @@ const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const checkSuspension = require('../utils/checkSuspension');
 
+const getUserPayload = (user) => {
+  const data = user.toObject ? user.toObject() : user;
+  delete data.password;
+  delete data.otp;
+  return data;
+};
+
 /**
  * @desc    Unified Register or Login
  * @route   POST /api/auth/register-or-login
@@ -80,7 +87,7 @@ exports.verifyOtp = async (req, res, next) => {
     user.lastLogin = new Date();
     await user.save();
     const token = generateToken(user);
-    res.json({ success: true, message: 'Verified!', _id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role, isVerified: true, token, needsPassword: !user.password, profilePhoto: user.profilePhoto || null, isProfileComplete: user.isProfileComplete || false, username: user.username || '' });
+    res.json({ success: true, message: 'Verified!', token, needsPassword: !user.password, ...getUserPayload(user) });
   } catch (error) { next(error); }
 };
 
@@ -118,14 +125,10 @@ exports.googleLogin = async (req, res, next) => {
         success: true, 
         isNewUser: true, 
         token,
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role, // default 'buyer'
         needsTerms: true,
-        isProfileComplete: false,
         isVerified: true,
-        message: 'Google account linked. Please complete your profile.' 
+        message: 'Google account linked. Please complete your profile.',
+        ...getUserPayload(user)
       });
     }
 
@@ -145,13 +148,9 @@ exports.googleLogin = async (req, res, next) => {
     res.json({ 
       success: true, 
       token, 
-      _id: user._id, 
-      name: user.name, 
-      email: user.email, 
-      role: user.role, 
       needsTerms,
-      isProfileComplete: user.isProfileComplete,
-      isVerified: true 
+      isVerified: true,
+      ...getUserPayload(user)
     });
   } catch (error) {
     console.error('[GOOGLE AUTH ERROR]', error);
@@ -195,7 +194,7 @@ exports.login = async (req, res, next) => {
       user.lastLogin = new Date();
       await user.save();
 
-      return res.json({ success: true, _id: user.id, name: user.name, email: user.email, phone: user.phone, role: 'host', isVerified: true, token: generateToken(user), profilePhoto: user.profilePhoto || null, isProfileComplete: user.isProfileComplete || false, username: user.username || '' });
+      return res.json({ success: true, token: generateToken(user), ...getUserPayload(user) });
     }
 
     // 2. Fallback to standard database user check
@@ -215,7 +214,7 @@ exports.login = async (req, res, next) => {
 
     user.lastLogin = new Date();
     await user.save();
-    res.json({ success: true, _id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role, isVerified: true, token: generateToken(user), profilePhoto: user.profilePhoto || null, isProfileComplete: user.isProfileComplete || false, username: user.username || '' });
+    res.json({ success: true, token: generateToken(user), ...getUserPayload(user) });
   } catch (error) { next(error); }
 };
 
@@ -332,7 +331,7 @@ exports.hostLogin = async (req, res, next) => {
 
     await user.save();
 
-    res.json({ success: true, token: generateToken(user), _id: user._id, name: user.name, email: user.email, role: 'host', profilePhoto: user.profilePhoto || null, isProfileComplete: user.isProfileComplete || false, username: user.username || '' });
+    res.json({ success: true, token: generateToken(user), ...getUserPayload(user) });
   } catch (error) { next(error); }
 };
 
