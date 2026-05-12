@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { propertyDetailGuard } from './core/guards/property-detail.guard';
 
 export const routes: Routes = [
   {
@@ -25,6 +26,7 @@ export const routes: Routes = [
   },
   {
     path: 'properties/:slug',
+    canActivate: [propertyDetailGuard],
     loadComponent: () => import('./pages/properties/property-detail.component').then(m => m.PropertyDetailComponent)
   },
   {

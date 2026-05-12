@@ -6,6 +6,7 @@ import { PropertyService } from '../../services/property.service';
 import { AuthService } from '../../services/auth.service';
 import { Property, User } from '../../models/interfaces';
 import { environment } from '../../../environments/environment';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-properties-list',
@@ -132,7 +133,7 @@ import { environment } from '../../../environments/environment';
                 </div>
                 
                 <div class="d-flex gap-2">
-                  <button class="btn btn-outline-primary flex-grow-1" [routerLink]="['/properties', prop.slug]">View Details</button>
+                  <button class="btn btn-outline-primary flex-grow-1" (click)="onViewDetails(prop.slug); $event.stopPropagation()">View Details</button>
                   <button class="btn" [ngClass]="isFavorite(prop._id!) ? 'btn-danger' : 'btn-outline-danger'" (click)="toggleFavorite(prop._id!)">
                     <i class="bi" [ngClass]="isFavorite(prop._id!) ? 'bi-heart-fill' : 'bi-heart'"></i>
                   </button>
@@ -216,7 +217,8 @@ export class PropertiesListComponent implements OnInit {
     private authService: AuthService,
     private route: ActivatedRoute,
     private router: Router,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private toast: ToastService
   ) {
     this.authService.currentUser.subscribe(u => this.currentUser.set(u));
     this.searchForm = this.fb.group({
@@ -230,24 +232,67 @@ export class PropertiesListComponent implements OnInit {
   }
 
   ngOnInit() {
+    // If a logged-in user has an incomplete profile, block access to property browsing.
+    const u = this.currentUser();
+    if (u && !u.isProfileComplete && u.role !== 'host') {
+      this.toast.warning('Registration incomplete. Please complete registration first.');
+      this.router.navigate(['/auth/register'], { queryParams: { incomplete: true, returnUrl: '/properties' } });
+      return;
+    }
+
     this.route.queryParams.subscribe(params => {
+      // Sync UI state with query params
+      if (params['type']) {
+        this.activePersona = params['type'] === 'sale' ? 'buy' : 'rent';
+      }
+      
+      this.searchForm.patchValue({
+        state: params['state'] || '',
+        location: params['location'] || '',
+        propertyType: params['propertyType'] || ''
+      }, { emitEvent: false });
+
       this.updateTitle(params);
       this.loadProperties(params);
     });
   }
 
+  onViewDetails(slug: string) {
+    const u = this.currentUser();
+    const target = `/properties/${slug}`;
+
+    if (!u) {
+      this.toast.info('Please login/register first to view property details.');
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: target } });
+      return;
+    }
+
+    if (!u.isProfileComplete && u.role !== 'host') {
+      this.toast.warning('Registration incomplete. Please complete registration first.');
+      this.router.navigate(['/auth/register'], { queryParams: { incomplete: true, returnUrl: target } });
+      return;
+    }
+
+    this.router.navigate(['/properties', slug]);
+  }
+
   private updateTitle(params: any) {
     const city = params.location;
     const state = params.state;
+    const type = params.type === 'rent' ? 'Properties for Rent' : (params.type === 'sale' ? 'Properties for Sale' : 'Properties');
+    
+    let locationStr = '';
     if (city && state) {
-      this.pageTitle.set(`Properties in ${city}, ${state}`);
+      locationStr = ` in ${city}, ${state}`;
     } else if (city) {
-      this.pageTitle.set(`Properties in ${city}`);
+      locationStr = ` in ${city}`;
     } else if (state) {
-      this.pageTitle.set(`Properties in ${state}`);
+      locationStr = ` in ${state}`;
     } else {
-      this.pageTitle.set('Properties in India');
+      locationStr = ' in India';
     }
+
+    this.pageTitle.set(`${type}${locationStr}`);
   }
 
   loadProperties(params: any) {
@@ -277,7 +322,7 @@ export class PropertiesListComponent implements OnInit {
           this.authService.updateCurrentUser({ favorites: newFavs });
         }
       },
-      error: () => alert('Please login to add favorites.')
+      error: () => this.toast.info('Please login to add favorites.')
     });
   }
 
@@ -309,7 +354,13 @@ export class PropertiesListComponent implements OnInit {
 
   setPersona(persona: 'buy' | 'rent' | 'sell') {
     this.activePersona = persona;
-    if (persona === 'buy') this.searchForm.patchValue({ type: 'sale' });
-    if (persona === 'rent') this.searchForm.patchValue({ type: 'rent' });
+    if (persona === 'sell') return;
+    
+    const type = persona === 'buy' ? 'sale' : 'rent';
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { type },
+      queryParamsHandling: 'merge'
+    });
   }
 }

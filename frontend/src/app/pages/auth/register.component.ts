@@ -5,6 +5,7 @@ import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../services/toast.service';
+import { DialogService } from '../../shared/dialog/dialog.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -304,12 +305,26 @@ import { environment } from '../../../environments/environment';
                       </div>
                       <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                          <label class="form-label fw-semibold text-muted small">CITY *</label>
-                          <input type="text" class="form-control" [class.is-invalid]="profileForm.get('city')?.invalid && profileForm.get('city')?.touched" formControlName="city" placeholder="Vadodara">
+                          <label class="form-label fw-semibold text-muted small">STATE *</label>
+                          <select class="form-select" [class.is-invalid]="profileForm.get('state')?.invalid && profileForm.get('state')?.touched" formControlName="state" (change)="onRegStateChange()">
+                            <option value="">Select State</option>
+                            <option *ngFor="let s of states" [value]="s">{{ s }}</option>
+                          </select>
                         </div>
                         <div class="col-md-6">
-                          <label class="form-label fw-semibold text-muted small">STATE *</label>
-                          <input type="text" class="form-control" [class.is-invalid]="profileForm.get('state')?.invalid && profileForm.get('state')?.touched" formControlName="state" placeholder="Gujarat">
+                          <label class="form-label fw-semibold text-muted small">CITY *</label>
+                          <ng-container *ngIf="profileForm.get('city')?.value !== 'Others'; else customCityInput">
+                            <select class="form-select" [class.is-invalid]="profileForm.get('city')?.invalid && profileForm.get('city')?.touched" formControlName="city" [disabled]="!selectedRegState">
+                              <option value="">{{ selectedRegState ? 'Select City' : 'Select State first' }}</option>
+                              <option *ngFor="let c of filteredCities" [value]="c">{{ c }}</option>
+                            </select>
+                          </ng-container>
+                          <ng-template #customCityInput>
+                            <div class="input-group">
+                              <input type="text" class="form-control" placeholder="Type city name..." #customRegCity (blur)="profileForm.patchValue({city: customRegCity.value})">
+                              <button type="button" class="btn btn-outline-secondary btn-sm" (click)="profileForm.patchValue({city: ''})">✕</button>
+                            </div>
+                          </ng-template>
                         </div>
                         <div class="col-md-6">
                           <label class="form-label fw-semibold text-muted small">PINCODE *</label>
@@ -318,7 +333,7 @@ import { environment } from '../../../environments/environment';
                         </div>
                         <div class="col-md-6">
                           <label class="form-label fw-semibold text-muted small">COUNTRY</label>
-                          <input type="text" class="form-control" formControlName="country" placeholder="India">
+                          <input type="text" class="form-control bg-light" formControlName="country" placeholder="India" readonly>
                         </div>
                       </div>
 
@@ -577,6 +592,57 @@ export class RegisterComponent implements OnInit {
     { value: 'agent', icon: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>', label: 'Agent', desc: 'List properties for clients, manage inquiries, professional tools' },
   ];
 
+  // State/City dropdown data
+  statesData: { [key: string]: string[] } = {
+    "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool", "Tirupati"],
+    "Arunachal Pradesh": ["Itanagar", "Tawang", "Pasighat", "Ziro", "Naharlagun"],
+    "Assam": ["Guwahati", "Dibrugarh", "Silchar", "Jorhat", "Nagaon", "Tinsukia"],
+    "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia", "Darbhanga"],
+    "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba", "Durg", "Jagdalpur"],
+    "Goa": ["Panaji", "Vasco da Gama", "Margao", "Mapusa", "Ponda"],
+    "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Junagadh", "Anand", "Vapi"],
+    "Haryana": ["Chandigarh", "Gurugram", "Faridabad", "Panipat", "Ambala", "Rohtak", "Hisar"],
+    "Himachal Pradesh": ["Shimla", "Dharamshala", "Solan", "Mandi", "Kullu", "Manali"],
+    "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Hazaribagh"],
+    "Karnataka": ["Bengaluru", "Mysuru", "Hubballi", "Mangaluru", "Belagavi", "Kalaburagi"],
+    "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Kollam", "Thrissur", "Alappuzha"],
+    "Madhya Pradesh": ["Bhopal", "Indore", "Jabalpur", "Gwalior", "Ujjain", "Sagar"],
+    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad", "Navi Mumbai"],
+    "Manipur": ["Imphal", "Churachandpur", "Thoubal"],
+    "Meghalaya": ["Shillong", "Tura", "Jowai"],
+    "Mizoram": ["Aizawl", "Lunglei", "Champhai"],
+    "Nagaland": ["Kohima", "Dimapur", "Mokokchung"],
+    "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Berhampur", "Sambalpur"],
+    "Punjab": ["Chandigarh", "Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Mohali"],
+    "Rajasthan": ["Jaipur", "Jodhpur", "Kota", "Bikaner", "Ajmer", "Udaipur", "Alwar"],
+    "Sikkim": ["Gangtok", "Namchi", "Geyzing"],
+    "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tiruppur"],
+    "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Khammam", "Karimnagar"],
+    "Tripura": ["Agartala", "Dharmanagar", "Udaipur"],
+    "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Agra", "Meerut", "Varanasi", "Prayagraj", "Noida"],
+    "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Haldwani", "Rishikesh"],
+    "West Bengal": ["Kolkata", "Howrah", "Asansol", "Siliguri", "Durgapur"],
+    "Delhi (NCT)": ["New Delhi", "Delhi"],
+    "Jammu & Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla"],
+    "Ladakh": ["Leh", "Kargil"],
+    "Chandigarh": ["Chandigarh"],
+    "Puducherry": ["Puducherry", "Karaikal", "Mahe"],
+    "Others": ["Others"]
+  };
+  states = Object.keys(this.statesData);
+  filteredCities: string[] = [];
+  selectedRegState = '';
+
+  onRegStateChange() {
+    this.selectedRegState = this.profileForm.get('state')?.value;
+    if (this.selectedRegState && this.statesData[this.selectedRegState]) {
+      this.filteredCities = [...this.statesData[this.selectedRegState], 'Others'];
+    } else {
+      this.filteredCities = [];
+    }
+    this.profileForm.patchValue({ city: '' });
+  }
+
   get avatarUrl(): string {
     const f = this.authForm?.value?.firstName || 'U';
     const l = this.authForm?.value?.lastName || '';
@@ -589,7 +655,8 @@ export class RegisterComponent implements OnInit {
     private route: ActivatedRoute,
     private auth: AuthService,
     private profileService: ProfileService,
-    private toast: ToastService
+    private toast: ToastService,
+    private dialog: DialogService
   ) {
     if (this.auth.currentUserValue && this.auth.currentUserValue.isProfileComplete) {
       this.router.navigate(['/']);
@@ -634,7 +701,7 @@ export class RegisterComponent implements OnInit {
     });
 
     effect(() => {
-      const role = this.auth.currentUserValue?.role;
+      const role = this.auth.currentUserValue?.role as any;
       if (role && role !== 'buyer') {
         ['company', 'designation', 'experience', 'specialization', 'languages'].forEach(f => {
           this.profileForm.get(f)?.setValidators([Validators.required]);
@@ -665,7 +732,12 @@ export class RegisterComponent implements OnInit {
           const last = parts.slice(1).join(' ') || '';
           
           this.authForm.patchValue({ email: user.email, firstName: first, lastName: last });
-          this.profileForm.patchValue({ firstName: first, lastName: last, phone: user.phone || '' });
+          this.profileForm.patchValue({ 
+            firstName: first, 
+            lastName: last, 
+            phone: user.phone || '',
+            country: 'India' 
+          });
           this.userEmail = user.email;
           this.otpVerified = true; // Skip password/OTP face
           this.step = jumpStep ? parseInt(jumpStep) : 2; 
@@ -688,7 +760,7 @@ export class RegisterComponent implements OnInit {
   }
 
   prepareProfileForm() {
-    const role = this.getUserRole();
+    const role = this.getUserRole() as any;
     if (role === 'agent' || role === 'host') {
       const proFields = ['company', 'designation', 'experience', 'specialization', 'languages'];
       proFields.forEach(f => {
@@ -900,7 +972,7 @@ export class RegisterComponent implements OnInit {
           isProfileComplete: true,
           ...res.user
         });
-        alert('Welcome to IndiaHomes! Your registration is complete.');
+        this.toast.success('Welcome to IndiaHomes! Your registration is complete.');
         this.goHome();
       },
       error: (e: any) => {
@@ -917,8 +989,9 @@ export class RegisterComponent implements OnInit {
       this.registrationFailed = true;
       return;
     }
-    if (u.role === 'host') this.router.navigate(['/host-dashboard']);
-    else if (u.role === 'agent') this.router.navigate(['/dashboard']);
+    const role = u.role as any;
+    if (role === 'host') this.router.navigate(['/host-dashboard']);
+    else if (role === 'agent') this.router.navigate(['/dashboard']);
     else this.router.navigate(['/']);
   }
 
@@ -927,14 +1000,14 @@ export class RegisterComponent implements OnInit {
     this.appealLoading = true;
     this.auth.submitAppeal(this.userEmail, this.appealMessage).subscribe({
       next: (res) => {
-        alert(res.message);
+        this.toast.info(res.message);
         this.showAppealModal = false;
         this.appealLoading = false;
         this.appealMessage = '';
       },
       error: (err) => {
         const errorMsg = err.error?.message || err.message || 'Failed to submit appeal';
-        alert(errorMsg);
+        this.toast.error(errorMsg);
         this.appealLoading = false;
       }
     });

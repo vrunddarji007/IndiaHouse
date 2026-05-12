@@ -5,6 +5,8 @@ import { PropertyService } from '../../services/property.service';
 import { AuthService } from '../../services/auth.service';
 import { Property, User } from '../../models/interfaces';
 import { environment } from '../../../environments/environment';
+import { ToastService } from '../../services/toast.service';
+import { DialogService } from '../../shared/dialog/dialog.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -97,7 +99,9 @@ export class DashboardComponent implements OnInit {
 
   constructor(
     private propertyService: PropertyService,
-    private authService: AuthService
+    private authService: AuthService,
+    private toast: ToastService,
+    private dialog: DialogService
   ) {
     this.authService.currentUser.subscribe(u => this.currentUser.set(u));
   }
@@ -122,12 +126,21 @@ export class DashboardComponent implements OnInit {
   }
 
   deleteProperty(id: string) {
-    if(confirm('Are you sure you want to delete this property?')) {
+    this.dialog.confirm({
+      title: 'Delete listing',
+      message: 'Are you sure you want to delete this property?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    }).then(ok => {
+      if (!ok) return;
       this.propertyService.deleteProperty(id).subscribe({
         next: () => {
           this.myProperties.update(props => props.filter(p => p._id !== id));
-        }
+          this.toast.success('Listing deleted.');
+        },
+        error: () => this.toast.error('Failed to delete listing.')
       });
-    }
+    });
   }
 }

@@ -6,7 +6,7 @@ export interface User {
   username?: string;
   email: string;
   phone: string;
-  role: 'buyer' | 'agent' | 'host' | 'admin';
+  role: 'buyer' | 'agent' | 'host' | 'admin' | (string & {});
   profilePic?: string;
   profilePhoto?: string;
   status?: 'active' | 'banned';

@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } 
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+import { DialogService } from '../../shared/dialog/dialog.service';
 import { environment } from '../../../environments/environment';
 
 declare var google: any;
@@ -410,7 +411,8 @@ export class LoginComponent {
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
-    private toast: ToastService
+    private toast: ToastService,
+    private dialog: DialogService
   ) {
     if (this.authService.currentUserValue) {
       this.router.navigate(['/']);
@@ -703,14 +705,14 @@ export class LoginComponent {
     this.appealLoading = true;
     this.authService.submitAppeal(this.userEmail, this.appealMessage).subscribe({
       next: (res) => {
-        alert(res.message);
+        this.toast.info(res.message);
         this.showAppealModal = false;
         this.appealLoading = false;
         this.appealMessage = '';
       },
       error: (err) => {
         const errorMsg = err.error?.message || err.message || 'Failed to submit appeal';
-        alert(errorMsg);
+        this.toast.error(errorMsg);
         this.appealLoading = false;
       }
     });

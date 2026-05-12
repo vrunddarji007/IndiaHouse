@@ -80,7 +80,7 @@ exports.verifyOtp = async (req, res, next) => {
     user.lastLogin = new Date();
     await user.save();
     const token = generateToken(user);
-    res.json({ success: true, message: 'Verified!', _id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role, isVerified: true, token, needsPassword: !user.password });
+    res.json({ success: true, message: 'Verified!', _id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role, isVerified: true, token, needsPassword: !user.password, profilePhoto: user.profilePhoto || null, isProfileComplete: user.isProfileComplete || false, username: user.username || '' });
   } catch (error) { next(error); }
 };
 
@@ -186,9 +186,16 @@ exports.login = async (req, res, next) => {
         user.isVerified = true;
         if (!user.password) user.password = hostPassword;
       }
+
+      // Host Admin is the system superuser: never lock yourself out.
+      user.status = 'active';
+      user.suspendedUntil = null;
+      user.suspensionDurationLabel = '';
+
       user.lastLogin = new Date();
       await user.save();
-      return res.json({ success: true, _id: user.id, name: user.name, email: user.email, phone: user.phone, role: 'host', isVerified: true, token: generateToken(user) });
+
+      return res.json({ success: true, _id: user.id, name: user.name, email: user.email, phone: user.phone, role: 'host', isVerified: true, token: generateToken(user), profilePhoto: user.profilePhoto || null, isProfileComplete: user.isProfileComplete || false, username: user.username || '' });
     }
 
     // 2. Fallback to standard database user check
@@ -208,7 +215,7 @@ exports.login = async (req, res, next) => {
 
     user.lastLogin = new Date();
     await user.save();
-    res.json({ success: true, _id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role, isVerified: true, token: generateToken(user) });
+    res.json({ success: true, _id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role, isVerified: true, token: generateToken(user), profilePhoto: user.profilePhoto || null, isProfileComplete: user.isProfileComplete || false, username: user.username || '' });
   } catch (error) { next(error); }
 };
 
@@ -317,8 +324,15 @@ exports.hostLogin = async (req, res, next) => {
     }
 
     user.lastLogin = new Date();
+
+    // Host Admin is the system superuser: never lock yourself out.
+    user.status = 'active';
+    user.suspendedUntil = null;
+    user.suspensionDurationLabel = '';
+
     await user.save();
-    res.json({ success: true, token: generateToken(user), _id: user._id, name: user.name, email: user.email, role: 'host' });
+
+    res.json({ success: true, token: generateToken(user), _id: user._id, name: user.name, email: user.email, role: 'host', profilePhoto: user.profilePhoto || null, isProfileComplete: user.isProfileComplete || false, username: user.username || '' });
   } catch (error) { next(error); }
 };
 

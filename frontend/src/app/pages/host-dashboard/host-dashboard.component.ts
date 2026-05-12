@@ -9,6 +9,7 @@ import { environment } from '../../../environments/environment';
 import { timer, Subscription, take } from 'rxjs';
 import { ReportService } from '../../services/report.service';
 import { ToastService } from '../../services/toast.service';
+import { PropertyService } from '../../services/property.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -124,7 +125,69 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
               </span>
             </button>
           </li>
+          <li class="nav-item">
+            <button class="nav-link px-4 py-2 fw-semibold" [class.active]="activeTab === 'my-listings'"
+              [style.background]="activeTab === 'my-listings' ? 'linear-gradient(135deg, #6f42c1, #a927f9)' : ''"
+              (click)="activeTab = 'my-listings'; loadMyProperties()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              My Dashboard
+            </button>
+          </li>
         </ul>
+
+        <!-- ═══ MY LISTINGS TAB ═══ -->
+        <div *ngIf="activeTab === 'my-listings'">
+           <div class="d-flex justify-content-between align-items-center mb-4">
+              <h4 class="fw-bold mb-0">My Personal Listings</h4>
+              <a routerLink="/properties/post" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                <i class="bi bi-plus-lg me-1"></i> Post Property
+              </a>
+           </div>
+
+           <div *ngIf="myPropertiesLoading()" class="text-center py-5">
+              <div class="spinner-border text-primary" role="status"></div>
+              <p class="text-muted mt-2 mb-0">Loading your properties...</p>
+           </div>
+
+           <div class="row g-4" *ngIf="!myPropertiesLoading()">
+              <div class="col-md-6 col-lg-4" *ngFor="let prop of myProperties()">
+                <div class="card property-card h-100 border shadow-sm overflow-hidden">
+                  <div class="position-absolute top-0 end-0 p-2 z-index-1">
+                    <span class="badge" [ngClass]="{
+                      'bg-success': prop.status === 'active',
+                      'bg-warning text-dark': prop.status === 'pending',
+                      'bg-danger': prop.status === 'sold/rented'
+                    }">{{ prop.status === 'sold/rented' ? (prop.type === 'rent' ? 'RENTED OUT' : 'SOLD OUT') : prop.status | uppercase }}</span>
+                  </div>
+                  
+                  <img [src]="prop.images && prop.images.length > 0 ? apiBase + prop.images[0] : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=400&q=80'" class="card-img-top" style="height: 180px; object-fit: cover;">
+                  
+                  <div class="card-body">
+                    <h6 class="fw-bold text-truncate">{{ prop.title }}</h6>
+                    <p class="text-primary fw-bold mb-1">{{ prop.price | currency:'INR' }}</p>
+                    <p class="text-muted small mb-2"><i class="bi bi-geo-alt me-1"></i>{{ prop.location }}</p>
+                    <div class="d-flex flex-column gap-2 mt-3">
+                      <div class="d-flex justify-content-between small text-muted border-top pt-2">
+                        <span><i class="bi bi-eye"></i> {{ prop.views }} Views</span>
+                      </div>
+                      <a [routerLink]="['/properties/manage', prop._id]" class="btn btn-outline-primary w-100 py-2 rounded-3 fw-bold">
+                        View Details
+                      </a>
+                      <button class="btn btn-sm btn-link text-danger p-0 d-flex align-items-center justify-content-center" (click)="onDeleteMyProperty(prop._id!)">
+                        <i class="bi bi-trash-fill me-1"></i> <small>Delete Listing</small>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div *ngIf="myProperties().length === 0" class="col-12 text-center py-5 bg-white rounded shadow-sm">
+                 <div class="fs-1 text-muted mb-3 opacity-25">🏠</div>
+                 <h5 class="text-muted">No Listings Yet</h5>
+                 <p class="small text-muted mb-0">You haven't posted any properties personally.</p>
+              </div>
+           </div>
+        </div>
 
         <!-- ═══ REPORTS TAB ═══ -->
         <div *ngIf="activeTab === 'reports'" class="card border-0 shadow-sm" style="background-color: #ffffff;">
@@ -494,7 +557,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                     </td>
                     <td>
                       <div class="dropdown">
-                        <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport">
                           Manage
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0">
@@ -505,18 +568,18 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                           <li><a class="dropdown-item py-2 text-primary" style="cursor:pointer;" (click)="downloadTerms(user._id)">
                             <i class="bi bi-file-earmark-pdf me-2"></i> Download T&C
                           </a></li>
-                          <li *ngIf="user.status !== 'banned' && (!user.suspendedUntil || !isSuspended(user.suspendedUntil))">
+                          <li *ngIf="user.role !== 'host' && user.status !== 'banned' && (!user.suspendedUntil || !isSuspended(user.suspendedUntil))">
                             <a class="dropdown-item text-danger py-2" style="cursor:pointer;" (click)="openSuspenseModal(user)">
                               <i class="bi bi-slash-circle me-2"></i> Suspend User
                             </a>
                           </li>
-                          <li *ngIf="user.status === 'banned' || (user.suspendedUntil && isSuspended(user.suspendedUntil))">
+                          <li *ngIf="user.role !== 'host' && (user.status === 'banned' || (user.suspendedUntil && isSuspended(user.suspendedUntil)))">
                             <a class="dropdown-item text-success py-2 font-bold" style="cursor:pointer;" (click)="onQuickApprove(user)">
                               <i class="bi bi-check-circle me-2"></i> Approve
                             </a>
                           </li>
                           <li>
-                            <a class="dropdown-item text-danger py-2" style="cursor:pointer;" (click)="deleteUserPermanently(user)">
+                            <a class="dropdown-item text-danger py-2" style="cursor:pointer;" (click)="deleteUserPermanently(user)" *ngIf="user.role !== 'host'">
                               <i class="bi bi-trash me-2"></i> Permanent Delete
                             </a>
                           </li>
@@ -836,6 +899,112 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       </div>
       <div class="modal-backdrop fade" [class.show]="showSuspenseModal" *ngIf="showSuspenseModal" (click)="closeSuspenseModal()"></div>
 
+      <!-- ═══ CONFIRM DIALOG (replaces confirm()) ═══ -->
+      <div class="modal fade app-dialog" [class.show]="confirmDialog().open" [style.display]="confirmDialog().open ? 'block' : 'none'" tabindex="-1" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content app-dialog__content">
+            <div class="modal-header app-dialog__header">
+              <div class="d-flex align-items-center gap-2">
+                <div class="app-dialog__icon"
+                  [ngClass]="{
+                    'app-dialog__icon--primary': confirmDialog().variant === 'primary',
+                    'app-dialog__icon--danger': confirmDialog().variant === 'danger',
+                    'app-dialog__icon--success': confirmDialog().variant === 'success',
+                    'app-dialog__icon--secondary': confirmDialog().variant === 'secondary'
+                  }">
+                  <i class="bi"
+                    [ngClass]="{
+                      'bi-question-lg': confirmDialog().variant === 'primary',
+                      'bi-exclamation-lg': confirmDialog().variant === 'danger',
+                      'bi-check-lg': confirmDialog().variant === 'success',
+                      'bi-info-lg': confirmDialog().variant === 'secondary'
+                    }"></i>
+                </div>
+                <div>
+                  <div class="app-dialog__title">{{ confirmDialog().title }}</div>
+                  <div class="app-dialog__subtitle">Please confirm to continue</div>
+                </div>
+              </div>
+              <button type="button" class="btn-close" (click)="onConfirmNo()"></button>
+            </div>
+            <div class="modal-body app-dialog__body">
+              <p class="mb-0 app-dialog__message">{{ confirmDialog().message }}</p>
+            </div>
+            <div class="modal-footer app-dialog__footer">
+              <button class="btn btn-light rounded-pill px-4" (click)="onConfirmNo()">{{ confirmDialog().cancelText }}</button>
+              <button class="btn rounded-pill px-4 app-dialog__primary-btn"
+                [ngClass]="{
+                  'btn-primary': confirmDialog().variant === 'primary',
+                  'btn-danger': confirmDialog().variant === 'danger',
+                  'btn-success': confirmDialog().variant === 'success',
+                  'btn-secondary': confirmDialog().variant === 'secondary'
+                }"
+                (click)="onConfirmYes()">
+                {{ confirmDialog().confirmText }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-backdrop fade app-dialog-backdrop" [class.show]="confirmDialog().open" *ngIf="confirmDialog().open" (click)="onConfirmNo()"></div>
+
+      <!-- ═══ INPUT DIALOG (replaces prompt()) ═══ -->
+      <div class="modal fade app-dialog" [class.show]="inputDialog().open" [style.display]="inputDialog().open ? 'block' : 'none'" tabindex="-1" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content app-dialog__content">
+            <div class="modal-header app-dialog__header">
+              <div class="d-flex align-items-center gap-2">
+                <div class="app-dialog__icon"
+                  [ngClass]="{
+                    'app-dialog__icon--primary': inputDialog().variant === 'primary',
+                    'app-dialog__icon--danger': inputDialog().variant === 'danger',
+                    'app-dialog__icon--success': inputDialog().variant === 'success',
+                    'app-dialog__icon--secondary': inputDialog().variant === 'secondary'
+                  }">
+                  <i class="bi"
+                    [ngClass]="{
+                      'bi-pencil-square': inputDialog().variant === 'primary',
+                      'bi-exclamation-lg': inputDialog().variant === 'danger',
+                      'bi-check-lg': inputDialog().variant === 'success',
+                      'bi-info-lg': inputDialog().variant === 'secondary'
+                    }"></i>
+                </div>
+                <div>
+                  <div class="app-dialog__title">{{ inputDialog().title }}</div>
+                  <div class="app-dialog__subtitle">{{ inputDialog().required ? 'Required input' : 'Optional input' }}</div>
+                </div>
+              </div>
+              <button type="button" class="btn-close" (click)="onInputCancel()"></button>
+            </div>
+            <div class="modal-body app-dialog__body">
+              <p class="mb-2 app-dialog__hint">{{ inputDialog().message }}</p>
+              <div class="app-dialog__field">
+                <textarea class="form-control app-dialog__textarea"
+                  rows="3"
+                  [placeholder]="inputDialog().placeholder"
+                  [ngModel]="inputDialog().value"
+                  (ngModelChange)="onInputDialogChange($event)"></textarea>
+                <div class="app-dialog__required" *ngIf="inputDialog().required">This field is required.</div>
+              </div>
+            </div>
+            <div class="modal-footer app-dialog__footer">
+              <button class="btn btn-light rounded-pill px-4" (click)="onInputCancel()">{{ inputDialog().cancelText }}</button>
+              <button class="btn rounded-pill px-4 app-dialog__primary-btn"
+                [ngClass]="{
+                  'btn-primary': inputDialog().variant === 'primary',
+                  'btn-danger': inputDialog().variant === 'danger',
+                  'btn-success': inputDialog().variant === 'success',
+                  'btn-secondary': inputDialog().variant === 'secondary'
+                }"
+                (click)="onInputSubmit()">
+                {{ inputDialog().confirmText }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-backdrop fade app-dialog-backdrop" [class.show]="inputDialog().open" *ngIf="inputDialog().open" (click)="onInputCancel()"></div>
+
     </div>
   `,
   styles: [`
@@ -844,9 +1013,89 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     .nav-pills .nav-link:hover:not(.active) { background: #e9ecef; }
     .table th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; border-bottom: 2px solid #dee2e6; }
     .table td { font-size: 0.9rem; vertical-align: middle; }
-    .card { border-radius: 16px !important; overflow: hidden; }
+    .card { border-radius: 16px !important; overflow: visible !important; z-index: 1; }
+    .table-responsive { overflow: visible !important; }
+    .dropdown-menu { z-index: 1050 !important; }
     .badge { font-weight: 500; }
     .modal.show { display: block !important; }
+
+    /* Dialog system (Confirm + Input) */
+    .app-dialog .modal-dialog { max-width: 520px; }
+    .app-dialog__content {
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+      overflow: hidden;
+      background: #fff;
+    }
+    .app-dialog__header {
+      border: 0;
+      padding: 16px 16px 12px;
+      background: linear-gradient(135deg, rgba(15, 12, 41, 0.06), rgba(48, 43, 99, 0.06), rgba(36, 36, 62, 0.04));
+    }
+    .app-dialog__title {
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+    .app-dialog__subtitle {
+      font-size: 12px;
+      color: rgba(15, 23, 42, 0.6);
+      margin-top: 2px;
+    }
+    .app-dialog__icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(15, 23, 42, 0.04);
+      color: #0d6efd;
+      flex: 0 0 auto;
+    }
+    .app-dialog__icon i { font-size: 18px; }
+    .app-dialog__icon--primary { color: #0d6efd; background: rgba(13, 110, 253, 0.08); border-color: rgba(13, 110, 253, 0.18); }
+    .app-dialog__icon--danger { color: #dc3545; background: rgba(220, 53, 69, 0.08); border-color: rgba(220, 53, 69, 0.18); }
+    .app-dialog__icon--success { color: #198754; background: rgba(25, 135, 84, 0.08); border-color: rgba(25, 135, 84, 0.18); }
+    .app-dialog__icon--secondary { color: #6c757d; background: rgba(108, 117, 125, 0.10); border-color: rgba(108, 117, 125, 0.18); }
+
+    .app-dialog__body { padding: 14px 16px 6px; }
+    .app-dialog__message { color: rgba(15, 23, 42, 0.75); font-size: 14px; }
+    .app-dialog__hint { color: rgba(15, 23, 42, 0.65); font-size: 13px; }
+    .app-dialog__field { margin-top: 8px; }
+    .app-dialog__textarea {
+      border-radius: 14px;
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      background: rgba(241, 245, 249, 0.8);
+      padding: 12px 12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+      resize: vertical;
+      min-height: 96px;
+    }
+    .app-dialog__textarea:focus {
+      border-color: rgba(13, 110, 253, 0.35);
+      box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
+      background: #fff;
+    }
+    .app-dialog__required { color: #dc3545; font-size: 12px; margin-top: 6px; }
+    .app-dialog__footer {
+      border: 0;
+      padding: 12px 16px 16px;
+      gap: 10px;
+    }
+    .app-dialog__primary-btn { box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18); }
+    .app-dialog-backdrop {
+      background: rgba(2, 6, 23, 0.55);
+      backdrop-filter: blur(6px);
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .app-dialog__content { animation: appDialogPop 140ms ease-out; }
+      @keyframes appDialogPop {
+        from { transform: translateY(8px) scale(0.98); opacity: 0.6; }
+        to { transform: translateY(0) scale(1); opacity: 1; }
+      }
+    }
     
     .pulse-online {
       box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
@@ -863,6 +1112,10 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
   activeTab = 'users';
   apiBase = environment.apiUrl.replace('/api', '');
   private timerSubscription?: Subscription;
+  private confirmAction?: () => void;
+  private cancelAction?: () => void;
+  private inputSubmitAction?: (value: string) => void;
+  private inputCancelAction?: () => void;
 
   // Users
   users = signal<any[]>([]);
@@ -897,6 +1150,10 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
   reportHistory = signal<any[]>([]);
   showReportHistory = false;
 
+  // My Personal Properties (Host as Agent)
+  myProperties = signal<any[]>([]);
+  myPropertiesLoading = signal(false);
+
   // User Detail Modal
   showUserDetail = false;
   userDetailLoading = false;
@@ -909,6 +1166,45 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
   selectedUserForSuspense: any = null;
   suspenseDuration = '1d';
 
+  // UI Dialogs (replace browser confirm/prompt/alert)
+  confirmDialog = signal<{
+    open: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+    variant: 'primary' | 'danger' | 'success' | 'secondary';
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    variant: 'primary',
+  });
+
+  inputDialog = signal<{
+    open: boolean;
+    title: string;
+    message: string;
+    placeholder: string;
+    value: string;
+    required: boolean;
+    confirmText: string;
+    cancelText: string;
+    variant: 'primary' | 'danger' | 'success' | 'secondary';
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    placeholder: '',
+    value: '',
+    required: false,
+    confirmText: 'Submit',
+    cancelText: 'Cancel',
+    variant: 'primary',
+  });
+
   currentUser = signal<any>(null);
   private searchTimeout: any;
 
@@ -916,7 +1212,9 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
     private hostService: HostService,
     private authService: AuthService,
     private messageService: MessageService,
-    private reportService: ReportService
+    private reportService: ReportService,
+    private propertyService: PropertyService,
+    private toast: ToastService
   ) {
     this.authService.currentUser.pipe(take(1)).subscribe(u => {
       this.currentUser.set(u);
@@ -950,19 +1248,121 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
       });
     });
   }
+
+  openConfirmDialog(opts: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: 'primary' | 'danger' | 'success' | 'secondary';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }) {
+    this.confirmAction = opts.onConfirm;
+    this.cancelAction = opts.onCancel;
+    this.confirmDialog.set({
+      open: true,
+      title: opts.title,
+      message: opts.message,
+      confirmText: opts.confirmText || 'Confirm',
+      cancelText: opts.cancelText || 'Cancel',
+      variant: opts.variant || 'primary',
+    });
+  }
+
+  closeConfirmDialog() {
+    this.confirmDialog.update(v => ({ ...v, open: false }));
+    this.confirmAction = undefined;
+    this.cancelAction = undefined;
+  }
+
+  onConfirmYes() {
+    const action = this.confirmAction;
+    this.closeConfirmDialog();
+    action?.();
+  }
+
+  onConfirmNo() {
+    const action = this.cancelAction;
+    this.closeConfirmDialog();
+    action?.();
+  }
+
+  openInputDialog(opts: {
+    title: string;
+    message: string;
+    placeholder?: string;
+    initialValue?: string;
+    required?: boolean;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: 'primary' | 'danger' | 'success' | 'secondary';
+    onSubmit: (value: string) => void;
+    onCancel?: () => void;
+  }) {
+    this.inputSubmitAction = opts.onSubmit;
+    this.inputCancelAction = opts.onCancel;
+    this.inputDialog.set({
+      open: true,
+      title: opts.title,
+      message: opts.message,
+      placeholder: opts.placeholder || '',
+      value: opts.initialValue || '',
+      required: !!opts.required,
+      confirmText: opts.confirmText || 'Submit',
+      cancelText: opts.cancelText || 'Cancel',
+      variant: opts.variant || 'primary',
+    });
+  }
+
+  closeInputDialog() {
+    this.inputDialog.update(v => ({ ...v, open: false, value: '' }));
+    this.inputSubmitAction = undefined;
+    this.inputCancelAction = undefined;
+  }
+
+  onInputCancel() {
+    const action = this.inputCancelAction;
+    this.closeInputDialog();
+    action?.();
+  }
+
+  onInputDialogChange(value: string) {
+    this.inputDialog.update(v => ({ ...v, value }));
+  }
+
+  onInputSubmit() {
+    const state = this.inputDialog();
+    const value = (state.value || '').trim();
+    if (state.required && !value) {
+      this.toast.error('This field is required.');
+      return;
+    }
+    const action = this.inputSubmitAction;
+    this.closeInputDialog();
+    action?.(value);
+  }
+
   updateStatus(user: any, newStatus: 'active' | 'banned', duration?: string) {
     const action = duration === 'none' ? 'ACTIVATE' : (newStatus === 'banned' ? 'BAN PERMANENTLY' : 'UPDATE STATUS');
-    if (!confirm(`Are you sure you want to ${action} user "${user.name}"?`)) return;
-
-    this.hostService.updateUserStatus(user._id, newStatus, duration).subscribe({
-      next: (res) => {
-        user.status = res.data.status;
-        user.suspendedUntil = res.data.suspendedUntil;
-        user.suspensionDurationLabel = res.data.suspensionDurationLabel;
-        // If we opened a modal, close it
-        this.closeSuspenseModal();
-      },
-      error: (err) => alert(err.error?.message || 'Failed to update status')
+    this.openConfirmDialog({
+      title: 'Confirm action',
+      message: `Are you sure you want to ${action} user "${user.name}"?`,
+      confirmText: 'Yes',
+      cancelText: 'No',
+      variant: newStatus === 'banned' ? 'danger' : 'primary',
+      onConfirm: () => {
+        this.hostService.updateUserStatus(user._id, newStatus, duration).subscribe({
+          next: (res) => {
+            user.status = res.data.status;
+            user.suspendedUntil = res.data.suspendedUntil;
+            user.suspensionDurationLabel = res.data.suspensionDurationLabel;
+            this.closeSuspenseModal();
+            this.toast.success(res.message || 'Status updated');
+          },
+          error: (err) => this.toast.error(err.error?.message || 'Failed to update status')
+        });
+      }
     });
   }
 
@@ -980,7 +1380,12 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
 
   submitSuspense() {
     if (!this.selectedUserForSuspense) return;
-    this.updateStatus(this.selectedUserForSuspense, 'active', this.suspenseDuration);
+    if (this.selectedUserForSuspense?.role === 'host') {
+      this.toast.error('Host accounts cannot be suspended or banned.');
+      return;
+    }
+    const status: 'active' | 'banned' = this.suspenseDuration === 'permanent' ? 'banned' : 'active';
+    this.updateStatus(this.selectedUserForSuspense, status, this.suspenseDuration);
   }
 
   // ─── Appeals Logic ───
@@ -1016,43 +1421,60 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
       this.onHandleAppeal(appeal, 'approve');
     } else {
       // 3. Fallback: Directly unban if no formal appeal found
-      if (confirm(`No formal appeal found for ${user.name}. Do you want to manually reactivate this account?`)) {
-        this.hostService.updateUserStatus(user._id, 'active').subscribe({
-          next: () => {
-            this.toast.success('User reactivated successfully.');
-            this.loadUsers();
-          },
-          error: (err) => this.toast.error(err.error?.message || 'Failed to reactivate user')
-        });
-      }
+      this.openConfirmDialog({
+        title: 'Reactivate user',
+        message: `No formal appeal found for ${user.name}. Do you want to manually reactivate this account?`,
+        confirmText: 'Reactivate',
+        cancelText: 'Cancel',
+        variant: 'success',
+        onConfirm: () => {
+          this.hostService.updateUserStatus(user._id, 'active').subscribe({
+            next: () => {
+              this.toast.success('User reactivated successfully.');
+              this.loadUsers();
+            },
+            error: (err) => this.toast.error(err.error?.message || 'Failed to reactivate user')
+          });
+        }
+      });
     }
   }
 
   onHandleAppeal(appeal: any, action: 'approve' | 'reject') {
     const isApprove = action === 'approve';
-    const msg = isApprove ? 'reactivate this user' : 'reject this appeal';
-    const promptMsg = isApprove ? 'Add an optional note (public to user):' : 'Reason for rejection (required):';
-    
-    // Prompt for note
-    const adminNote = prompt(promptMsg, '');
-    
-    // Rejection requires a reason
-    if (adminNote === null) return; // Cancelled
-    if (!isApprove && !adminNote.trim()) {
-      alert('A reason is required to reject an appeal.');
-      return;
-    }
+    const title = isApprove ? 'Approve appeal' : 'Reject appeal';
+    const message = isApprove
+      ? 'Add an optional note (public to user).'
+      : 'Reason for rejection (required).';
 
-    if (!confirm(`Are you sure you want to ${msg}?`)) return;
-
-    this.hostService.handleAppeal(appeal._id, action, adminNote).subscribe({
-      next: (res) => {
-        this.toast.success(res.message);
-        this.loadAppeals();
-        this.loadAppealHistory(); 
-        this.loadUsers();
-      },
-      error: (err) => this.toast.error(err.error?.message || 'Failed to handle appeal')
+    this.openInputDialog({
+      title,
+      message,
+      placeholder: isApprove ? 'Optional note...' : 'Reason...',
+      required: !isApprove,
+      confirmText: 'Continue',
+      cancelText: 'Cancel',
+      variant: isApprove ? 'success' : 'danger',
+      onSubmit: (adminNote) => {
+        this.openConfirmDialog({
+          title,
+          message: isApprove ? 'Are you sure you want to reactivate this user?' : 'Are you sure you want to reject this appeal?',
+          confirmText: isApprove ? 'Approve' : 'Reject',
+          cancelText: 'Cancel',
+          variant: isApprove ? 'success' : 'danger',
+          onConfirm: () => {
+            this.hostService.handleAppeal(appeal._id, action, adminNote).subscribe({
+              next: (res) => {
+                this.toast.success(res.message);
+                this.loadAppeals();
+                this.loadAppealHistory();
+                this.loadUsers();
+              },
+              error: (err) => this.toast.error(err.error?.message || 'Failed to handle appeal')
+            });
+          }
+        });
+      }
     });
   }
 
@@ -1076,24 +1498,37 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
 
   onHandleReport(report: any, action: 'resolve' | 'reject') {
     const isResolve = action === 'resolve';
-    
-    // For automated system, we don't need to ask for duration anymore
-    const adminNote = prompt(isResolve ? 'Admin note (stored in history):' : 'Reason for rejection:', '');
-    if (adminNote === null) return;
+    this.openInputDialog({
+      title: isResolve ? 'Resolve report' : 'Reject report',
+      message: isResolve ? 'Admin note (stored in history).' : 'Reason for rejection.',
+      placeholder: isResolve ? 'Optional note...' : 'Reason...',
+      required: false,
+      confirmText: 'Continue',
+      cancelText: 'Cancel',
+      variant: isResolve ? 'danger' : 'secondary',
+      onSubmit: (adminNote) => {
+        const confirmMsg = isResolve
+          ? 'Are you sure you want to RESOLVE this report? The user will be automatically suspended based on their violation history.'
+          : 'Are you sure you want to REJECT this report?';
 
-    const confirmMsg = isResolve 
-      ? `Are you sure you want to RESOLVE this report? The user will be automatically suspended based on their violation history.`
-      : `Are you sure you want to REJECT this report?`;
-
-    if (!confirm(confirmMsg)) return;
-
-    this.reportService.handleReport(report._id, action, adminNote).subscribe({
-      next: (res) => {
-        this.toast.success(res.message);
-        this.loadReports();
-        this.loadUsers();
-      },
-      error: (err) => this.toast.error(err.error?.message || 'Failed to handle report')
+        this.openConfirmDialog({
+          title: isResolve ? 'Confirm resolve' : 'Confirm reject',
+          message: confirmMsg,
+          confirmText: isResolve ? 'Resolve' : 'Reject',
+          cancelText: 'Cancel',
+          variant: isResolve ? 'danger' : 'secondary',
+          onConfirm: () => {
+            this.reportService.handleReport(report._id, action, adminNote).subscribe({
+              next: (res) => {
+                this.toast.success(res.message);
+                this.loadReports();
+                this.loadUsers();
+              },
+              error: (err) => this.toast.error(err.error?.message || 'Failed to handle report')
+            });
+          }
+        });
+      }
     });
   }
 
@@ -1113,19 +1548,26 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
         window.URL.revokeObjectURL(url);
         a.remove();
       },
-      error: (err) => alert('Failed to download Terms PDF.')
+      error: (err) => this.toast.error(err.error?.message || 'Failed to download Terms PDF.')
     });
   }
 
   deleteUserPermanently(user: any) {
-    if (!confirm(`🚨 WARNING: Are you sure you want to PERMANENTLY DELETE user "${user.name}"? This will also remove all their properties and CANNOT be undone.`)) return;
-
-    this.hostService.deleteUser(user._id).subscribe({
-      next: () => {
-        this.users.set(this.users().filter(u => u._id !== user._id));
-        this.toast.success('User deleted permanently.');
-      },
-      error: (err) => this.toast.error(err.error?.message || 'Failed to delete user')
+    this.openConfirmDialog({
+      title: 'Permanent delete',
+      message: `WARNING: Are you sure you want to PERMANENTLY DELETE user "${user.name}"? This will also remove all their properties and CANNOT be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: () => {
+        this.hostService.deleteUser(user._id).subscribe({
+          next: () => {
+            this.users.set(this.users().filter(u => u._id !== user._id));
+            this.toast.success('User deleted permanently.');
+          },
+          error: (err) => this.toast.error(err.error?.message || 'Failed to delete user')
+        });
+      }
     });
   }
 
@@ -1248,5 +1690,37 @@ export class HostDashboardComponent implements OnInit, OnDestroy {
   closeUserDetail() {
     this.showUserDetail = false;
     this.selectedUser = null;
+  }
+
+  loadMyProperties() {
+    this.myPropertiesLoading.set(true);
+    // Use the dashboard properties endpoint with a high limit to get all, then filter
+    this.hostService.getDashboardProperties(1, 1000, {}).subscribe({
+      next: (res) => {
+        const mine = res.data.filter((p: any) => p.postedBy?._id === this.currentUser()?._id);
+        this.myProperties.set(mine);
+        this.myPropertiesLoading.set(false);
+      },
+      error: () => this.myPropertiesLoading.set(false)
+    });
+  }
+
+  onDeleteMyProperty(id: string) {
+    this.openConfirmDialog({
+      title: 'Delete listing',
+      message: 'Are you sure you want to delete this property from your personal listings?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: () => {
+        this.propertyService.deleteProperty(id).subscribe({
+          next: () => {
+            this.myProperties.update(props => props.filter(p => p._id !== id));
+            this.toast.success('Listing deleted.');
+          },
+          error: () => this.toast.error('Failed to delete listing.')
+        });
+      }
+    });
   }
 }

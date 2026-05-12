@@ -225,7 +225,7 @@ export class HeaderComponent {
   ) {
     this.authService.currentUser.subscribe(u => {
       this.user = u;
-      this.canPost = u?.role === 'agent' || u?.role === 'host';
+      this.canPost = (u?.role as any) === 'agent' || (u?.role as any) === 'host';
       if (u?._id) {
         this.messageService.connectSocket(u._id);
       }
@@ -245,7 +245,7 @@ export class HeaderComponent {
   onPropertyAction() {
     if (!this.user) {
       this.router.navigate(['/auth/login']);
-    } else if (this.user.role === 'agent' || this.user.role === 'host') {
+    } else if ((this.user.role as any) === 'agent' || (this.user.role as any) === 'host') {
       this.router.navigate(['/properties/post']);
     }
   }

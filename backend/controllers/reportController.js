@@ -77,6 +77,14 @@ exports.handleReport = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Reported user not found' });
     }
 
+    // Host Admin accounts are system users; do not auto-suspend/ban them via reports.
+    if (reportedUser.role === 'host' && action === 'resolve') {
+      return res.status(403).json({
+        success: false,
+        message: 'Host accounts cannot be suspended or banned via reports.',
+      });
+    }
+
     let automatedDuration = '';
     let automatedMsg = '';
 

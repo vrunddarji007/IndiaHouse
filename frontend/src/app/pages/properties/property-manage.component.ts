@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { PropertyService } from '../../services/property.service';
 import { environment } from '../../../environments/environment';
+import { ToastService } from '../../services/toast.service';
+import { DialogService } from '../../shared/dialog/dialog.service';
 
 // Last updated: 2026-03-27 05:47 AM - Resolving cache issues.
 
@@ -309,7 +311,9 @@ export class PropertyManageComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private propertyService: PropertyService
+    private propertyService: PropertyService,
+    private toast: ToastService,
+    private dialog: DialogService
   ) {}
 
   ngOnInit() {
@@ -361,7 +365,7 @@ export class PropertyManageComponent implements OnInit {
         await navigator.share(shareData);
       } else {
         navigator.clipboard.writeText(url);
-        alert('Listing link copied to clipboard!');
+        this.toast.success('Listing link copied to clipboard!');
       }
     } catch (err) {
       console.error('Error sharing listing:', err);
@@ -369,14 +373,22 @@ export class PropertyManageComponent implements OnInit {
   }
 
   deleteListing() {
-    if (confirm('Are you sure you want to delete this listing?')) {
+    this.dialog.confirm({
+      title: 'Delete listing',
+      message: 'Are you sure you want to delete this listing?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    }).then(ok => {
+      if (!ok) return;
       this.propertyService.deleteProperty(this.property._id).subscribe({
         next: () => {
-          alert('Listing deleted successfully');
+          this.toast.success('Listing deleted successfully');
           this.router.navigate(['/dashboard']);
-        }
+        },
+        error: () => this.toast.error('Failed to delete listing')
       });
-    }
+    });
   }
 
   toggleStatus() {
@@ -389,20 +401,27 @@ export class PropertyManageComponent implements OnInit {
       ? `Are you sure you want to mark this property as ${displayStatus}?` 
       : 'Are you sure you want to reactivate this property?';
 
-    if (confirm(confirmMsg)) {
+    this.dialog.confirm({
+      title: 'Update status',
+      message: confirmMsg,
+      confirmText: 'Update',
+      cancelText: 'Cancel',
+      variant: 'primary',
+    }).then(ok => {
+      if (!ok) return;
       const formData = new FormData();
       formData.append('status', newStatus);
       
       this.propertyService.updateProperty(this.property._id, formData).subscribe({
-        next: (res: any) => {
+        next: () => {
           this.property.status = newStatus;
-          alert(`Property marked as ${newStatus === 'active' ? 'Active' : displayStatus} successfully.`);
+          this.toast.success(`Property marked as ${newStatus === 'active' ? 'Active' : displayStatus} successfully.`);
         },
         error: (err: any) => {
           console.error('Error updating status:', err);
-          alert('Failed to update property status. Please ensure you are authorized to manage this property.');
+          this.toast.error('Failed to update property status. Please ensure you are authorized to manage this property.');
         }
       });
-    }
+    });
   }
 }

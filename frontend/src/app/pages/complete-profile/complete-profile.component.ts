@@ -137,9 +137,27 @@ import { environment } from '../../../environments/environment';
                     <input type="text" class="form-control form-control-lg bg-light border-0 rounded-3" formControlName="street" placeholder="123 Main Street, Alkapuri" [class.is-invalid]="profileForm.get('street')?.invalid && profileForm.get('street')?.touched">
                   </div>
                   <div class="row g-3 mb-3">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold text-muted small">STATE</label>
+                      <select class="form-select bg-light border-0 rounded-3" formControlName="state" [class.is-invalid]="profileForm.get('state')?.invalid && profileForm.get('state')?.touched" (change)="onCPStateChange()">
+                        <option value="">Select State</option>
+                        <option *ngFor="let s of states" [value]="s">{{ s }}</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
                       <label class="form-label fw-semibold text-muted small">CITY</label>
-                      <input type="text" class="form-control bg-light border-0 rounded-3" formControlName="city" placeholder="Vadodara" [class.is-invalid]="profileForm.get('city')?.invalid && profileForm.get('city')?.touched">
+                      <ng-container *ngIf="profileForm.get('city')?.value !== 'Others'; else cpCustomCity">
+                        <select class="form-select bg-light border-0 rounded-3" formControlName="city" [class.is-invalid]="profileForm.get('city')?.invalid && profileForm.get('city')?.touched" [disabled]="!selectedCPState">
+                          <option value="">{{ selectedCPState ? 'Select City' : 'Select State first' }}</option>
+                          <option *ngFor="let c of filteredCities" [value]="c">{{ c }}</option>
+                        </select>
+                      </ng-container>
+                      <ng-template #cpCustomCity>
+                        <div class="input-group">
+                          <input type="text" class="form-control bg-light border-0 rounded-3" placeholder="Type city name..." #cpOtherCity (blur)="profileForm.patchValue({city: cpOtherCity.value})">
+                          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="profileForm.patchValue({city: ''})">✕</button>
+                        </div>
+                      </ng-template>
                     </div>
                     <div class="col-md-4">
                       <label class="form-label fw-semibold text-muted small">TOWN</label>
@@ -149,17 +167,13 @@ import { environment } from '../../../environments/environment';
                       <label class="form-label fw-semibold text-muted small">VILLAGE</label>
                       <input type="text" class="form-control bg-light border-0 rounded-3" formControlName="village" placeholder="Dashrath">
                     </div>
-                    <div class="col-md-4">
-                      <label class="form-label fw-semibold text-muted small">STATE</label>
-                      <input type="text" class="form-control bg-light border-0 rounded-3" formControlName="state" placeholder="Gujarat" [class.is-invalid]="profileForm.get('state')?.invalid && profileForm.get('state')?.touched">
-                    </div>
                     <div class="col-md-2">
                       <label class="form-label fw-semibold text-muted small">PINCODE</label>
                       <input type="text" class="form-control bg-light border-0 rounded-3" formControlName="pincode" placeholder="390001" maxlength="6" [class.is-invalid]="profileForm.get('pincode')?.invalid && profileForm.get('pincode')?.touched">
                     </div>
                     <div class="col-md-2">
                       <label class="form-label fw-semibold text-muted small">COUNTRY</label>
-                      <input type="text" class="form-control bg-light border-0 rounded-3" formControlName="country">
+                      <input type="text" class="form-control bg-light border-0 rounded-3" formControlName="country" readonly>
                     </div>
                   </div>
 
@@ -300,6 +314,57 @@ export class CompleteProfileComponent implements OnInit {
   private usernameTimeout: any;
   apiBase = environment.apiUrl.replace('/api', '');
 
+  // State/City dropdown data
+  statesData: { [key: string]: string[] } = {
+    "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool", "Tirupati"],
+    "Arunachal Pradesh": ["Itanagar", "Tawang", "Pasighat", "Ziro", "Naharlagun"],
+    "Assam": ["Guwahati", "Dibrugarh", "Silchar", "Jorhat", "Nagaon", "Tinsukia"],
+    "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia", "Darbhanga"],
+    "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba", "Durg", "Jagdalpur"],
+    "Goa": ["Panaji", "Vasco da Gama", "Margao", "Mapusa", "Ponda"],
+    "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Junagadh", "Anand", "Vapi"],
+    "Haryana": ["Chandigarh", "Gurugram", "Faridabad", "Panipat", "Ambala", "Rohtak", "Hisar"],
+    "Himachal Pradesh": ["Shimla", "Dharamshala", "Solan", "Mandi", "Kullu", "Manali"],
+    "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Hazaribagh"],
+    "Karnataka": ["Bengaluru", "Mysuru", "Hubballi", "Mangaluru", "Belagavi", "Kalaburagi"],
+    "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Kollam", "Thrissur", "Alappuzha"],
+    "Madhya Pradesh": ["Bhopal", "Indore", "Jabalpur", "Gwalior", "Ujjain", "Sagar"],
+    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad", "Navi Mumbai"],
+    "Manipur": ["Imphal", "Churachandpur", "Thoubal"],
+    "Meghalaya": ["Shillong", "Tura", "Jowai"],
+    "Mizoram": ["Aizawl", "Lunglei", "Champhai"],
+    "Nagaland": ["Kohima", "Dimapur", "Mokokchung"],
+    "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Berhampur", "Sambalpur"],
+    "Punjab": ["Chandigarh", "Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Mohali"],
+    "Rajasthan": ["Jaipur", "Jodhpur", "Kota", "Bikaner", "Ajmer", "Udaipur", "Alwar"],
+    "Sikkim": ["Gangtok", "Namchi", "Geyzing"],
+    "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tiruppur"],
+    "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Khammam", "Karimnagar"],
+    "Tripura": ["Agartala", "Dharmanagar", "Udaipur"],
+    "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Agra", "Meerut", "Varanasi", "Prayagraj", "Noida"],
+    "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Haldwani", "Rishikesh"],
+    "West Bengal": ["Kolkata", "Howrah", "Asansol", "Siliguri", "Durgapur"],
+    "Delhi (NCT)": ["New Delhi", "Delhi"],
+    "Jammu & Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla"],
+    "Ladakh": ["Leh", "Kargil"],
+    "Chandigarh": ["Chandigarh"],
+    "Puducherry": ["Puducherry", "Karaikal", "Mahe"],
+    "Others": ["Others"]
+  };
+  states = Object.keys(this.statesData);
+  filteredCities: string[] = [];
+  selectedCPState = '';
+
+  onCPStateChange() {
+    this.selectedCPState = this.profileForm.get('state')?.value;
+    if (this.selectedCPState && this.statesData[this.selectedCPState]) {
+      this.filteredCities = [...this.statesData[this.selectedCPState], 'Others'];
+    } else {
+      this.filteredCities = [];
+    }
+    this.profileForm.patchValue({ city: '' });
+  }
+
   get avatarUrl(): string {
     const f = this.profileForm?.value?.firstName || 'U';
     const l = this.profileForm?.value?.lastName || '';
@@ -374,7 +439,7 @@ export class CompleteProfileComponent implements OnInit {
           village: u.address?.village || '',
           state: u.address?.state || '',
           pincode: u.address?.pincode || '',
-          country: u.address?.country || 'India',
+          country: 'India',
           company: u.company || '',
           designation: u.designation || '',
           website: u.website || '',
@@ -390,6 +455,16 @@ export class CompleteProfileComponent implements OnInit {
           email: u.email || '',
           phone: u.phone || '',
         });
+        // Initialize dropdowns for existing state/city
+        const existingState = u.address?.state || '';
+        if (existingState && this.statesData[existingState]) {
+          this.selectedCPState = existingState;
+          this.filteredCities = [...this.statesData[existingState], 'Others'];
+          const existingCity = u.address?.city || '';
+          if (existingCity && !this.filteredCities.includes(existingCity)) {
+            this.filteredCities.unshift(existingCity);
+          }
+        }
         if (u.profilePhoto) {
           this.existingPhoto = this.apiBase + u.profilePhoto;
         }

@@ -4,11 +4,12 @@ import { HeaderComponent } from './shared/header/header.component';
 import { FooterComponent } from './shared/footer/footer.component';
 import { filter } from 'rxjs/operators';
 import { ToastComponent } from './components/toast.component';
+import { AppDialogComponent } from './shared/dialog/app-dialog.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, HeaderComponent, FooterComponent, ToastComponent],
+  imports: [RouterOutlet, HeaderComponent, FooterComponent, ToastComponent, AppDialogComponent],
   template: `
     <app-header></app-header>
     <main class="min-vh-100 mt-5 pt-3">
@@ -17,6 +18,7 @@ import { ToastComponent } from './components/toast.component';
     @if (isHome) {
       <app-footer></app-footer>
     }
+    <app-dialog></app-dialog>
     <app-toast></app-toast>
   `
 })

@@ -77,6 +77,21 @@ exports.updateUserStatus = async (req, res, next) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
+    // Prevent locking out the Host Admin / host role accounts
+    if (user.role === 'host') {
+      // Allow only clearing actions, never suspending/banning hosts
+      const isClearing =
+        duration === 'none' ||
+        status === 'active' ||
+        (!duration && !status);
+      if (!isClearing) {
+        return res.status(403).json({
+          success: false,
+          message: 'Host accounts cannot be suspended or banned.',
+        });
+      }
+    }
+
     let message = '';
 
     if (duration) {

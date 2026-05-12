@@ -17,9 +17,19 @@ exports.reactToMessage = async (req, res, next) => {
     const message = await Message.findById(req.params.messageId);
     if (!message) return res.status(404).json({ success: false, message: 'Not found' });
 
-    const idx = message.reactions.findIndex(r => r.user.toString() === userId && r.emojiCode === emojiCode);
-    if (idx > -1) message.reactions.splice(idx, 1);
-    else message.reactions.push({ emojiCode, user: userId });
+    // Rule: one reaction per user per message.
+    // - Clicking the same emoji removes your reaction
+    // - Clicking a different emoji replaces your previous reaction
+    const hadSameEmoji = message.reactions.some(
+      (r) => r.user?.toString() === userId && r.emojiCode === emojiCode
+    );
+
+    // Remove ALL previous reactions by this user (handles older data that may contain multiples)
+    message.reactions = message.reactions.filter((r) => r.user?.toString() !== userId);
+
+    if (!hadSameEmoji) {
+      message.reactions.push({ emojiCode, user: userId });
+    }
     
     await message.save();
     res.status(200).json({ success: true, data: message.reactions });

@@ -117,11 +117,11 @@ export class AuthService {
   }
 
   hasRole(role: string): boolean {
-    return this.currentUserValue?.role === role;
+    return (this.currentUserValue?.role as any) === role;
   }
 
   canPost(): boolean {
-    const r = this.currentUserValue?.role;
+    const r = this.currentUserValue?.role as any;
     return r === 'agent' || r === 'host';
   }
 }

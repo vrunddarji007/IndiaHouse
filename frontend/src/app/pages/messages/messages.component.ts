@@ -6,6 +6,7 @@ import { MessageService } from '../../services/message.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { User, Message, Conversation } from '../../models/interfaces';
+import { DialogService } from '../../shared/dialog/dialog.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -67,7 +68,7 @@ import { environment } from '../../../environments/environment';
         <!-- Chat Area (Fluid) -->
         <div class="col-md-8 col-lg-9 h-100 d-flex flex-column chat-column" *ngIf="selectedUser()" style="background: #f0f2f5;">
           <!-- Selection Mode Toolbar -->
-          <div *ngIf="selectionMode" class="p-3 shadow-sm d-flex align-items-center justify-content-between sticky-top z-3" style="background: #f0f2f5; animation: slideDown 0.2s ease;">
+          <div *ngIf="selectionMode" class="p-3 shadow-sm d-flex align-items-center justify-content-between sticky-top" style="background: #f0f2f5; animation: slideDown 0.2s ease; z-index: 1030;">
             <div class="d-flex align-items-center gap-3">
               <button class="btn btn-link p-0" style="color: #096a4d;" (click)="cancelSelection()">
                 <i class="bi bi-x-lg fs-4"></i>
@@ -82,7 +83,7 @@ import { environment } from '../../../environments/environment';
           </div>
 
           <!-- Chat Header -->
-          <div class="p-3 shadow-sm d-flex align-items-center justify-content-between bg-white border-bottom sticky-top z-3">
+          <div class="p-3 shadow-sm d-flex align-items-center justify-content-between bg-white border-bottom sticky-top" style="z-index: 1030;">
             <div class="d-flex align-items-center">
               <button class="btn btn-link text-dark d-md-none me-2 p-0" (click)="backToList()">
                 <i class="bi bi-arrow-left fs-4"></i>
@@ -629,7 +630,8 @@ export class MessagesComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute,
-    private toast: ToastService
+    private toast: ToastService,
+    private dialog: DialogService
   ) {
     this.authService.currentUser.subscribe(u => this.currentUser.set(u));
     
@@ -772,7 +774,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('File too large (max 5MB)');
+      this.toast.warning('File too large (max 5MB)');
       return;
     }
 
@@ -818,7 +820,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
         this.messageService.emitMessage(roomId, res.data);
         this.currentMessages.update(msgs => [...msgs, res.data]);
       },
-      error: () => alert('Failed to send.')
+      error: () => this.toast.error('Failed to send.')
     });
   }
 
@@ -962,16 +964,24 @@ export class MessagesComponent implements OnInit, OnDestroy {
     const ids = Array.from(this.selectedMessageIds);
     if (ids.length === 0) return;
 
-    if (confirm(`Delete ${ids.length} selected message(s)?`)) {
+    this.dialog.confirm({
+      title: 'Delete messages',
+      message: `Delete ${ids.length} selected message(s)?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    }).then(ok => {
+      if (!ok) return;
       this.messageService.deleteMessages(ids).subscribe({
         next: () => {
           this.currentMessages.update(msgs => msgs.filter(m => !m._id || !this.selectedMessageIds.has(m._id)));
           this.cancelSelection();
-          this.loadConversations(); // Update "Last Message" in sidebar
+          this.loadConversations();
+          this.toast.success('Messages deleted.');
         },
-        error: (err) => alert('Failed to delete messages.')
+        error: () => this.toast.error('Failed to delete messages.')
       });
-    }
+    });
   }
 
   // --- BLOCKING METHODS ---
@@ -980,20 +990,28 @@ export class MessagesComponent implements OnInit, OnDestroy {
     const otherId = this.selectedUser();
     if (!otherId) return;
 
-    if (confirm(`Block ${this.selectedUserName}? They will not be able to message you.`)) {
+    this.dialog.confirm({
+      title: 'Block user',
+      message: `Block ${this.selectedUserName}? They will not be able to message you.`,
+      confirmText: 'Block',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    }).then(ok => {
+      if (!ok) return;
       this.messageService.blockUser(otherId).subscribe({
         next: () => {
           this.isUserBlockedByMe.set(true);
-          // Update local currentUser in AuthService to reflect the new blocked list
           const current = this.currentUser();
           if (current) {
             const blocked = [...(current.blockedUsers || []), otherId];
             this.authService.updateCurrentUser({ blockedUsers: blocked });
           }
           this.showChatMenu = false;
-        }
+          this.toast.success('User blocked.');
+        },
+        error: () => this.toast.error('Failed to block user.')
       });
-    }
+    });
   }
 
   unblockUser() {
@@ -1026,32 +1044,46 @@ export class MessagesComponent implements OnInit, OnDestroy {
     const otherId = this.selectedUser();
     if (!otherId) return;
     
-    if (confirm('Are you sure you want to clear all messages in this chat? This cannot be undone.')) {
+    this.dialog.confirm({
+      title: 'Clear chat',
+      message: 'Are you sure you want to clear all messages in this chat? This cannot be undone.',
+      confirmText: 'Clear',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    }).then(ok => {
+      if (!ok) return;
       this.messageService.clearChat(this.selectedUser()!).subscribe({
         next: () => {
           this.currentMessages.set([]);
           this.toast.success('Chat cleared successfully');
         },
-        error: (err) => this.toast.error('Failed to clear chat')
+        error: () => this.toast.error('Failed to clear chat')
       });
-    }
+    });
   }
 
   confirmDeleteChat() {
     const otherId = this.selectedUser();
     if (!otherId) return;
     
-    if (confirm('Are you sure you want to delete this entire conversation?')) {
+    this.dialog.confirm({
+      title: 'Delete conversation',
+      message: 'Are you sure you want to delete this entire conversation?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    }).then(ok => {
+      if (!ok) return;
       this.messageService.deleteChat(otherId).subscribe({
         next: () => {
           this.currentMessages.set([]);
           this.backToList();
-          // Update conversation list
           this.conversations.update(prev => prev.filter(c => c.user._id !== otherId));
           this.showChatMenu = false;
+          this.toast.success('Conversation deleted.');
         },
-        error: (err) => console.error('Error deleting chat:', err)
+        error: () => this.toast.error('Failed to delete conversation.')
       });
-    }
+    });
   }
 }

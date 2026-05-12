@@ -7,6 +7,7 @@ import { MessageService } from '../../services/message.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { Property, User } from '../../models/interfaces';
+import { DialogService } from '../../shared/dialog/dialog.service';
 import { environment } from '../../../environments/environment';
 import { Map, tileLayer, marker, icon, Marker, LatLngExpression, polyline, Polyline } from 'leaflet';
 
@@ -396,7 +397,8 @@ export class PropertyDetailComponent implements OnInit {
     private seoService: SeoService,
     private route: ActivatedRoute,
     private router: Router,
-    private toast: ToastService
+    private toast: ToastService,
+    private dialog: DialogService
   ) {
     this.authService.currentUser.subscribe(user => this.currentUser.set(user));
   }
@@ -466,7 +468,7 @@ export class PropertyDetailComponent implements OnInit {
 
   toggleUserLocation() {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
+      this.toast.warning('Geolocation is not supported by your browser.');
       return;
     }
 
@@ -662,14 +664,23 @@ export class PropertyDetailComponent implements OnInit {
   }
 
   deleteReview(rat: any) {
-    if (!confirm('Are you sure you want to delete this review?')) return;
-    this.propertyService.deleteReview(this.property()!._id!, rat._id).subscribe({
-      next: (res) => {
-        this.property.set(res.data);
-      },
-      error: (err) => {
-        alert(err.error?.message || err.error?.error || 'Error deleting review');
-      }
+    this.dialog.confirm({
+      title: 'Delete review',
+      message: 'Are you sure you want to delete this review?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    }).then((ok) => {
+      if (!ok) return;
+      this.propertyService.deleteReview(this.property()!._id!, rat._id).subscribe({
+        next: (res) => {
+          this.property.set(res.data);
+          this.toast.success('Review deleted.');
+        },
+        error: (err) => {
+          this.toast.error(err.error?.message || err.error?.error || 'Error deleting review');
+        }
+      });
     });
   }
 
@@ -744,7 +755,7 @@ export class PropertyDetailComponent implements OnInit {
     const prop = this.property();
     const user = this.currentUser();
     if (!prop || !user || !user._id) {
-      alert('Please login to like reviews.');
+      this.toast.info('Please login to like reviews.');
       return;
     }
 
@@ -759,7 +770,7 @@ export class PropertyDetailComponent implements OnInit {
           rat.likes = [...likes, user._id!];
         }
       },
-      error: () => alert('Failed to toggle like on review.')
+      error: () => this.toast.error('Failed to toggle like on review.')
     });
   }
 
