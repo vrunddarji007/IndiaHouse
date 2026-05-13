@@ -2,7 +2,6 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const generateOTP = require('../utils/otpGenerator');
 const { sendOTPEmail } = require('../utils/emailService');
-const { sendOTPSMS } = require('../utils/smsService');
 const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const checkSuspension = require('../utils/checkSuspension');

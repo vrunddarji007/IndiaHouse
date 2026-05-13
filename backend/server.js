@@ -8,7 +8,6 @@ const path = require('path');
 const http = require('http');
 const connectDB = require('./config/db');
 const { chatSocket } = require('./sockets/chat');
-const { initTwilio } = require('./utils/smsService');
 const { initTransporter } = require('./utils/emailService');
 const { errorHandler } = require('./middleware/error');
 
@@ -17,9 +16,6 @@ dotenv.config();
 
 // Connect to database
 connectDB();
-
-// Initialize Twilio
-initTwilio();
 
 // Initialize Email (auto-creates Ethereal test account if no SMTP configured)
 initTransporter();

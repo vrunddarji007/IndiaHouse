@@ -213,8 +213,7 @@ import { environment } from '../../../environments/environment';
 
                         <!-- Reactions Display -->
                         <div *ngIf="msg.reactions && msg.reactions.length > 0" 
-                             class="reactions-display d-flex flex-wrap gap-1 position-absolute"
-                             [ngClass]="isSentByMe(msg) ? 'end-0' : 'start-0'"
+                             class="reactions-display d-flex flex-wrap gap-1 position-absolute start-0"
                              style="bottom: -12px; z-index: 5;">
                             <div *ngFor="let r of groupReactions(msg.reactions)" 
                                  class="reaction-badge bg-white shadow-sm border rounded-pill d-flex align-items-center gap-1 px-0.8 py-0.8 cursor-pointer hover-scale"
@@ -386,7 +385,7 @@ import { environment } from '../../../environments/environment';
     .badge { --bs-badge-color: #000; }
     
     .chat-list-item { background: #fff !important; cursor: pointer; transition: 0.2s; border-radius: 10px; margin: 4px 8px; border: none !important; color: #000 !important; }
-    .chat-list-item:hover, .chat-list-item.active-chat { background: #76d469d3 !important; }
+    .chat-list-item:hover, .chat-list-item.active-chat { background: #94f5877c !important; }
     .chat-list-item.active-chat { border: 1px solid #05f301ff !important; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .chat-list-item.active-chat h6, .chat-list-item.active-chat .text-muted { color: #000 !important; }
     

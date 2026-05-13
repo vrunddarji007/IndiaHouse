@@ -32,7 +32,7 @@ const validate = (req, res, next) => {
 // Unified register-or-login
 router.post('/register-or-login', authLimiter, [
   body('email', 'Valid email required').isEmail().normalizeEmail(),
-  body('verificationMethod').optional().isIn(['email', 'sms', 'both']),
+  body('verificationMethod').optional().isIn(['email']),
 ], validate, registerOrLogin);
 
 // Verify OTP
