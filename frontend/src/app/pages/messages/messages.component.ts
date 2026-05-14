@@ -233,8 +233,7 @@ import { environment } from '../../../environments/environment';
 
                       <!-- Reactions Overlay -->
                       <div *ngIf="activeReactionMsgId === msg._id" 
-                           class="reactions-overlay d-flex gap-1 p-1 bg-white shadow-lg border rounded-pill position-absolute" 
-                           [ngClass]="isSentByMe(msg) ? 'top-0 end-0 translate-middle-y' : 'top-0 start-0 translate-middle-y'"
+                           class="reactions-overlay d-flex gap-1 p-1 bg-white shadow-lg border rounded-pill position-absolute top-0 start-0 translate-middle-y" 
                            style="z-index: 1050; margin-top: -10px;">
                          <div *ngFor="let emoji of liveEmojis.slice(0, 5)" class="reaction-item p-1 hover-bg-light rounded-circle cursor-pointer" 
                               (click)="$event.stopPropagation(); toggleReaction(msg, emoji.code)">
@@ -258,7 +257,10 @@ import { environment } from '../../../environments/environment';
 
                       <!-- Emoji Trigger -->
                       <button type="button" class="btn btn-sm rounded-circle emoji-trigger border-0 d-none d-md-flex align-items-center justify-content-center" 
-                              [ngStyle]="{'background': isSentByMe(msg) ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}"
+                              [ngStyle]="{
+                                'background': isSentByMe(msg) ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                                'order': isSentByMe(msg) ? '1' : '-1'
+                              }"
                               style="width: 28px; height: 28px;"
                               (click)="$event.stopPropagation(); toggleReactionPanel(msg._id!)">
                         <i class="bi bi-emoji-smile fs-6" [style.color]="isSentByMe(msg) ? '#444' : '#888'"></i>
