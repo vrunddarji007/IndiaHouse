@@ -1,17 +1,16 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
+const { getCorsOrigins } = require('../utils/corsOrigins');
 
 const onlineUsers = new Map(); // userId -> socket.id
 const userRooms = new Map(); // socket.id -> Set of rooms (for stopTyping on disconnect)
 
 const chatSocket = (server) => {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
-
   const io = new Server(server, {
     cors: {
-      // FIX: Locked down CORS from '*' to the actual frontend origin
-      origin: frontendUrl,
+      origin: getCorsOrigins(),
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 

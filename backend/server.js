@@ -10,6 +10,7 @@ const connectDB = require('./config/db');
 const { chatSocket } = require('./sockets/chat');
 const { initTransporter } = require('./utils/emailService');
 const { errorHandler } = require('./middleware/error');
+const { getCorsOrigins } = require('./utils/corsOrigins');
 
 // Load env vars
 dotenv.config();
@@ -29,9 +30,7 @@ chatSocket(server);
 // Middleware
 app.use(express.json());
 app.use(mongoSanitize()); // Prevent NoSQL Injection
-// FIX: Strict CORS instead of origin: *
-const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:4200').replace(/\/$/, '');
-app.use(cors({ origin: frontendUrl, credentials: true }));
+app.use(cors({ origin: getCorsOrigins(), credentials: true }));
 app.use(helmet({ 
   crossOriginResourcePolicy: false,
   crossOriginEmbedderPolicy: false
@@ -44,6 +43,11 @@ if (process.env.NODE_ENV === 'development') {
 app.use('/uploads/chat', express.static(path.join(__dirname, 'uploads/chat'))); // Priority
 app.use('/uploads/chat', express.static(path.join(__dirname, 'uploads')));      // Legacy fallback
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Health check (Render uptime monitors, load balancers)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ ok: true, uptime: process.uptime() });
+});
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -60,6 +64,6 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
